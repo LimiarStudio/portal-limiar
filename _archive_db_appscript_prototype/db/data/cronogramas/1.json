@@ -1,0 +1,50 @@
+[
+  {
+    "id": "t1",
+    "nome": "Preparação do terreno",
+    "ini": "2026-03-10",
+    "fim": "2026-03-25",
+    "av": 100,
+    "dur": 6
+  },
+  {
+    "id": "t2",
+    "nome": "Fundação",
+    "ini": "2026-03-26",
+    "fim": "2026-04-30",
+    "av": 100,
+    "dur": 14
+  },
+  {
+    "id": "t3",
+    "nome": "Estrutura",
+    "ini": "2026-05-01",
+    "fim": "2026-07-15",
+    "av": 60,
+    "dur": 30
+  },
+  {
+    "id": "t4",
+    "nome": "Alvenaria",
+    "ini": "2026-07-16",
+    "fim": "2026-09-10",
+    "av": 20,
+    "dur": 24
+  },
+  {
+    "id": "t6",
+    "nome": "Instalações Hidrossanitárias",
+    "ini": "2026-09-20",
+    "fim": "2026-10-08",
+    "av": 0,
+    "dur": 18
+  },
+  {
+    "id": "t7",
+    "nome": "Instalações Elétricas",
+    "ini": "2026-09-25",
+    "fim": "2026-10-10",
+    "av": 0,
+    "dur": 15
+  }
+]

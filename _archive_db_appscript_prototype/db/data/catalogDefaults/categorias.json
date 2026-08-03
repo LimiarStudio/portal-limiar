@@ -1,0 +1,347 @@
+[
+  {
+    "nome": "Pedreiro",
+    "etapas": [
+      "Preparação do terreno",
+      "Fundação",
+      "Estrutura",
+      "Alvenaria",
+      "Revestimentos/Acabamentos",
+      "Área Externa"
+    ]
+  },
+  {
+    "nome": "Ajudante",
+    "todasEtapas": true
+  },
+  {
+    "nome": "Armador",
+    "etapas": [
+      "Fundação",
+      "Estrutura"
+    ]
+  },
+  {
+    "nome": "Mestre de Obras",
+    "todasEtapas": true
+  },
+  {
+    "nome": "Eletricista",
+    "etapas": [
+      "Instalações Elétricas",
+      "Revestimentos/Acabamentos",
+      "Finalização/Entrega"
+    ]
+  },
+  {
+    "nome": "Gesseiro",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Pintor",
+    "etapas": [
+      "Pintura"
+    ]
+  },
+  {
+    "nome": "Drywall",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Marceneiro",
+    "etapas": [
+      "Marcenaria/Mobiliários"
+    ]
+  },
+  {
+    "nome": "Aluguel de Equipamentos",
+    "etapas": [
+      "Preparação do terreno",
+      "Fundação",
+      "Estrutura",
+      "Área Externa"
+    ]
+  },
+  {
+    "nome": "Aço",
+    "etapas": [
+      "Fundação",
+      "Estrutura"
+    ]
+  },
+  {
+    "nome": "Madeira",
+    "etapas": [
+      "Fundação",
+      "Estrutura",
+      "Cobertura"
+    ]
+  },
+  {
+    "nome": "Concreto",
+    "etapas": [
+      "Fundação",
+      "Estrutura"
+    ]
+  },
+  {
+    "nome": "Estrutura Metálica",
+    "etapas": [
+      "Estrutura",
+      "Cobertura"
+    ]
+  },
+  {
+    "nome": "Tijolo",
+    "etapas": [
+      "Alvenaria"
+    ]
+  },
+  {
+    "nome": "Cimento",
+    "etapas": [
+      "Fundação",
+      "Estrutura",
+      "Alvenaria",
+      "Revestimentos/Acabamentos",
+      "Área Externa"
+    ]
+  },
+  {
+    "nome": "Areia",
+    "etapas": [
+      "Fundação",
+      "Estrutura",
+      "Alvenaria",
+      "Revestimentos/Acabamentos",
+      "Área Externa"
+    ]
+  },
+  {
+    "nome": "Brita",
+    "etapas": [
+      "Fundação",
+      "Estrutura",
+      "Área Externa"
+    ]
+  },
+  {
+    "nome": "Complementos Alvenaria",
+    "etapas": [
+      "Alvenaria"
+    ]
+  },
+  {
+    "nome": "Telhas",
+    "etapas": [
+      "Cobertura"
+    ]
+  },
+  {
+    "nome": "Complementos Telhado",
+    "etapas": [
+      "Cobertura"
+    ]
+  },
+  {
+    "nome": "Calheiro / Telhadista",
+    "etapas": [
+      "Cobertura"
+    ]
+  },
+  {
+    "nome": "Serralheiro",
+    "etapas": [
+      "Estrutura",
+      "Cobertura",
+      "Esquadrias",
+      "Área Externa"
+    ]
+  },
+  {
+    "nome": "Tubulação Hidráulica + Conexões",
+    "etapas": [
+      "Instalações Hidrossanitárias"
+    ]
+  },
+  {
+    "nome": "Louças e Metais",
+    "etapas": [
+      "Instalações Hidrossanitárias",
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Complementos Hidráulica",
+    "etapas": [
+      "Instalações Hidrossanitárias"
+    ]
+  },
+  {
+    "nome": "Cabos",
+    "etapas": [
+      "Instalações Elétricas"
+    ]
+  },
+  {
+    "nome": "Acabamentos Elétrica",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Complementos Elétrica",
+    "etapas": [
+      "Instalações Elétricas"
+    ]
+  },
+  {
+    "nome": "Infraestrutura Ar-condicionado",
+    "etapas": [
+      "Instalações Especiais"
+    ]
+  },
+  {
+    "nome": "Infraestrutura Gás",
+    "etapas": [
+      "Instalações Especiais"
+    ]
+  },
+  {
+    "nome": "Instalador de Energia Solar",
+    "etapas": [
+      "Instalações Especiais"
+    ]
+  },
+  {
+    "nome": "Impermeabilizantes",
+    "etapas": [
+      "Impermeabilização"
+    ]
+  },
+  {
+    "nome": "Piso / Revestimento",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Complementos Revestimentos",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Piso Laminado / Vinílico",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Esquadria Alumínio",
+    "etapas": [
+      "Esquadrias"
+    ]
+  },
+  {
+    "nome": "Esquadria Madeira",
+    "etapas": [
+      "Esquadrias"
+    ]
+  },
+  {
+    "nome": "Esquadria Blindex",
+    "etapas": [
+      "Esquadrias"
+    ]
+  },
+  {
+    "nome": "Complementos Esquadrias",
+    "etapas": [
+      "Esquadrias"
+    ]
+  },
+  {
+    "nome": "Tintas / Massas",
+    "etapas": [
+      "Pintura"
+    ]
+  },
+  {
+    "nome": "Complementos Pintura",
+    "etapas": [
+      "Pintura"
+    ]
+  },
+  {
+    "nome": "Bancadas",
+    "etapas": [
+      "Mármores e Granitos"
+    ]
+  },
+  {
+    "nome": "Soleiras / Peitoris",
+    "etapas": [
+      "Mármores e Granitos"
+    ]
+  },
+  {
+    "nome": "Nichos",
+    "etapas": [
+      "Mármores e Granitos"
+    ]
+  },
+  {
+    "nome": "Iluminação",
+    "etapas": [
+      "Revestimentos/Acabamentos"
+    ]
+  },
+  {
+    "nome": "Equipamentos e Eletrodomésticos",
+    "etapas": [
+      "Finalização/Entrega"
+    ]
+  },
+  {
+    "nome": "Móveis Planejados",
+    "etapas": [
+      "Marcenaria/Mobiliários"
+    ]
+  },
+  {
+    "nome": "Mobiliário Solto",
+    "etapas": [
+      "Marcenaria/Mobiliários",
+      "Decoração"
+    ]
+  },
+  {
+    "nome": "Cortinas / Tapetes",
+    "etapas": [
+      "Decoração"
+    ]
+  },
+  {
+    "nome": "Itens Decorativos",
+    "etapas": [
+      "Decoração"
+    ]
+  },
+  {
+    "nome": "Materiais de Paisagismo (plantas, grama, pedras, vasos, etc.)",
+    "etapas": [
+      "Paisagismo"
+    ]
+  },
+  {
+    "nome": "Paisagista / Jardineiro",
+    "etapas": [
+      "Paisagismo"
+    ]
+  }
+]

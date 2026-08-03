@@ -1,0 +1,50 @@
+{
+  "n": 46,
+  "semanaInicio": "2026-07-14",
+  "semanaFim": "2026-07-18",
+  "resp": "Joyce Santos",
+  "mo": [
+    {
+      "funcao": "Servente",
+      "qtd": 4
+    },
+    {
+      "funcao": "Encarregado",
+      "qtd": 1
+    },
+    {
+      "funcao": "Pedreiro",
+      "qtd": 2
+    }
+  ],
+  "eq": [
+    {
+      "equipamento": "Andaime",
+      "qtd": 8
+    }
+  ],
+  "atividades": [
+    {
+      "texto": "Organização do canteiro após chuva no início da semana",
+      "etapa": null,
+      "avanco": 0
+    },
+    {
+      "texto": "Início da alvenaria do térreo",
+      "etapa": "Alvenaria",
+      "avanco": 8
+    }
+  ],
+  "ocorrencias": "Serviços paralisados na segunda-feira devido à chuva. Retomados normalmente na terça.",
+  "fotos": [
+    {
+      "legenda": "Canteiro após a chuva",
+      "emoji": "🌧️"
+    },
+    {
+      "legenda": "Alvenaria iniciada",
+      "emoji": "🧱"
+    }
+  ],
+  "projectId": 1
+}

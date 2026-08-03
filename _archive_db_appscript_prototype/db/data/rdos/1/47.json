@@ -1,0 +1,66 @@
+{
+  "n": 47,
+  "semanaInicio": "2026-07-21",
+  "semanaFim": "2026-07-25",
+  "resp": "Joyce Santos",
+  "mo": [
+    {
+      "funcao": "Pedreiro",
+      "qtd": 4
+    },
+    {
+      "funcao": "Servente",
+      "qtd": 6
+    },
+    {
+      "funcao": "Armador",
+      "qtd": 3
+    },
+    {
+      "funcao": "Encarregado",
+      "qtd": 1
+    }
+  ],
+  "eq": [
+    {
+      "equipamento": "Betoneira",
+      "qtd": 1
+    },
+    {
+      "equipamento": "Andaime",
+      "qtd": 8
+    },
+    {
+      "equipamento": "Vibrador de concreto",
+      "qtd": 1
+    }
+  ],
+  "atividades": [
+    {
+      "texto": "Concretagem da laje do 2º pavimento",
+      "etapa": "Estrutura",
+      "avanco": 5
+    },
+    {
+      "texto": "Montagem de fôrmas para a próxima etapa",
+      "etapa": "Estrutura",
+      "avanco": 4
+    }
+  ],
+  "ocorrencias": "Chegada de material às 13h de quarta-feira atrasou 30min. Sem impacto no cronograma.",
+  "fotos": [
+    {
+      "legenda": "Concretagem em andamento",
+      "emoji": "🏗️"
+    },
+    {
+      "legenda": "Armação da laje",
+      "emoji": "📐"
+    },
+    {
+      "legenda": "Vista geral do canteiro",
+      "emoji": "🏠"
+    }
+  ],
+  "projectId": 1
+}

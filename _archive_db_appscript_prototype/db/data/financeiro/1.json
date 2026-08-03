@@ -1,0 +1,238 @@
+{
+  "Preparação do terreno": [
+    {
+      "nome": "Aluguel de Equipamentos",
+      "prev": 15000,
+      "lanc": [
+        {
+          "data": "2026-03-08",
+          "desc": "Tapumes e container",
+          "valor": 14200
+        }
+      ]
+    },
+    {
+      "nome": "Ajudante",
+      "prev": 8000,
+      "lanc": []
+    }
+  ],
+  "Fundação": [
+    {
+      "nome": "Concreto",
+      "prev": 130000,
+      "lanc": [
+        {
+          "data": "2026-04-12",
+          "desc": "Concreto usinado - NF 4021",
+          "valor": 120000
+        }
+      ]
+    },
+    {
+      "nome": "Aço",
+      "prev": 55000,
+      "lanc": [
+        {
+          "data": "2026-04-20",
+          "desc": "Ferragem CA-50",
+          "valor": 52000
+        }
+      ]
+    },
+    {
+      "nome": "Aluguel de Equipamentos",
+      "prev": 20000,
+      "lanc": []
+    }
+  ],
+  "Estrutura": [
+    {
+      "nome": "Aço",
+      "prev": 260000,
+      "lanc": [
+        {
+          "data": "2026-06-15",
+          "desc": "Aço estrutural",
+          "valor": 250000
+        }
+      ]
+    },
+    {
+      "nome": "Concreto",
+      "prev": 170000,
+      "lanc": [
+        {
+          "data": "2026-07-10",
+          "desc": "Concreto lajes",
+          "valor": 160000
+        }
+      ]
+    },
+    {
+      "nome": "Madeira",
+      "prev": 90000,
+      "lanc": []
+    }
+  ],
+  "Alvenaria": [
+    {
+      "nome": "Tijolo",
+      "prev": 180000,
+      "lanc": [
+        {
+          "data": "2026-07-18",
+          "desc": "Blocos e argamassa",
+          "valor": 60000
+        }
+      ]
+    },
+    {
+      "nome": "Pedreiro",
+      "prev": 60000,
+      "lanc": []
+    }
+  ],
+  "Cobertura": [
+    {
+      "nome": "Telhas",
+      "prev": 0,
+      "lanc": []
+    },
+    {
+      "nome": "Estrutura Metálica",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Instalações Hidrossanitárias": [
+    {
+      "nome": "Tubulação Hidráulica + Conexões",
+      "prev": 160000,
+      "lanc": [
+        {
+          "data": "2026-07-22",
+          "desc": "Tubulação hidráulica",
+          "valor": 15000
+        }
+      ]
+    }
+  ],
+  "Instalações Elétricas": [
+    {
+      "nome": "Cabos",
+      "prev": 150000,
+      "lanc": []
+    },
+    {
+      "nome": "Complementos Elétrica",
+      "prev": 20000,
+      "lanc": [
+        {
+          "data": "2026-10-05",
+          "desc": "Disjuntores e quadro extra - imprevisto",
+          "valor": 22000
+        }
+      ]
+    }
+  ],
+  "Instalações Especiais": [
+    {
+      "nome": "Infraestrutura Ar-condicionado",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Esquadrias": [
+    {
+      "nome": "Esquadria Alumínio",
+      "prev": 0,
+      "lanc": []
+    },
+    {
+      "nome": "Esquadria Madeira",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Impermeabilização": [
+    {
+      "nome": "Impermeabilizantes",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Pintura": [
+    {
+      "nome": "Tintas / Massas",
+      "prev": 80000,
+      "lanc": []
+    }
+  ],
+  "Mármores e Granitos": [
+    {
+      "nome": "Bancadas",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Revestimentos/Acabamentos": [
+    {
+      "nome": "Piso / Revestimento",
+      "prev": 150000,
+      "lanc": []
+    },
+    {
+      "nome": "Louças e Metais",
+      "prev": 50000,
+      "lanc": []
+    }
+  ],
+  "Área Externa": [
+    {
+      "nome": "Pedreiro",
+      "prev": 0,
+      "lanc": []
+    },
+    {
+      "nome": "Cimento",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Marcenaria/Mobiliários": [
+    {
+      "nome": "Móveis Planejados",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Decoração": [
+    {
+      "nome": "Cortinas / Tapetes",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Paisagismo": [
+    {
+      "nome": "Paisagista / Jardineiro",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Limpeza Final": [
+    {
+      "nome": "Ajudante",
+      "prev": 0,
+      "lanc": []
+    }
+  ],
+  "Finalização/Entrega": [
+    {
+      "nome": "Equipamentos e Eletrodomésticos",
+      "prev": 0,
+      "lanc": []
+    }
+  ]
+}

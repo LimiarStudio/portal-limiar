@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Limiar — Projeto</title>
+<link rel="icon" type="image/png" href="img/logo-limiar.png">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <div class="brand-mark"><img src="img/logo-limiar.png" alt="Portal Limiar"></div>
+      <div><div class="brand-name" style="font-size:16px">Portal Limiar</div><div class="brand-sub">Gestão de Obras</div></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="user-chip">
+        <div class="avatar" id="avatar">JS</div>
+        <div><div id="userName" style="font-weight:600;font-size:13px">Joyce Santos</div><div id="userRole" style="font-size:11px;color:var(--mut)">Gestor</div></div>
+      </div>
+      <button class="btn" style="width:100%;margin-top:12px;font-size:12px" onclick="logout()">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="crumb" id="crumb">Projetos</div>
+        <h1 id="pageTitle">Projeto</h1>
+      </div>
+      <div class="topbar-actions" id="topActions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div id="modalRoot"></div>
+
+<script src="js/data.js"></script><script src="js/helpers.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/session.js"></script>
+<script src="js/render.js"></script>
+<script src="js/financeiro.js"></script>
+<script src="js/cronograma.js"></script>
+<script src="js/projeto-page.js"></script>
+<script>initProjetoPage();</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "nome": "Residência Alphaville",
+  "cliente": "João & Marina Costa",
+  "endereco": "Al. das Palmeiras, 220 — Alphaville, Barueri/SP",
+  "resp": "Joyce Santos",
+  "inicio": "2026-03-10",
+  "termino": "2026-12-20",
+  "avanco": 42,
+  "icon": "🏠",
+  "imagem": null,
+  "tipo": "completo",
+  "criadoEm": "2026-08-03T05:34:56.868Z",
+  "id": 1
+}
