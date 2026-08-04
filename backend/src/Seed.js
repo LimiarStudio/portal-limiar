@@ -26,7 +26,7 @@ var Seed = {
   // lixeira do Drive (30 dias pra recuperar manualmente) e limpa o cache de
   // pastas — NÃO rechama rodar() sozinho, são dois passos propositalmente separados
   resetar(){
-    const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','images','archive'];
+    const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','rdoPdfs','images','archive'];
     nomes.forEach(function(nome){
       try{ LibFolders.getDataSubfolder(nome).setTrashed(true); }catch(e){}
     });

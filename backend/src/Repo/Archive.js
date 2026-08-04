@@ -8,7 +8,9 @@
    enxuto, não economizar espaço no Drive — e só então apaga o resto do
    projeto do banco ativo: permissões, catálogo, cronograma, financeiro e os
    próprios relatórios. Espelha o fluxo já aprovado e simulado na demo
-   estática (ver "Zona de risco" em editar-projeto-page.js). */
+   estática (ver "Zona de risco" em editar-projeto-page.js). A montagem do
+   PDF em si (montarPdfDeRelatorio_) é compartilhada com o export avulso de
+   Repo/Rdos.js#gerarPdf — aqui só decide ONDE guardar o resultado. */
 var RepoArchive = {
   arquivarProjeto(projectId, confirm){
     if(confirm!=='ARQUIVAR PROJETO') throw new Error('Confirmação inválida — digite "ARQUIVAR PROJETO" para arquivar.');
@@ -21,43 +23,8 @@ var RepoArchive = {
     const pdfsGerados = [];
 
     relatorios.forEach(function(relatorio){
-      const doc = DocumentApp.create('tmp-relatorio-'+relatorio.n);
-      const body = doc.getBody();
-      body.appendParagraph('Relatório nº '+relatorio.n+' — '+nome).setHeading(DocumentApp.ParagraphHeading.TITLE);
-      body.appendParagraph('Semana de '+relatorio.semanaInicio+' a '+relatorio.semanaFim);
-      body.appendParagraph('Responsável: '+relatorio.resp);
-
-      body.appendParagraph('Mão de obra').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      (relatorio.mo||[]).forEach(function(m){ body.appendParagraph(m.funcao+': '+m.qtd); });
-
-      body.appendParagraph('Equipamentos').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      (relatorio.eq||[]).forEach(function(e){ body.appendParagraph(e.equipamento+': '+e.qtd); });
-
-      body.appendParagraph('Atividades realizadas').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      (relatorio.atividades||[]).forEach(function(a){
-        const linha = a.etapa ? (a.texto+' ('+a.etapa+' +'+a.avanco+'%)') : a.texto;
-        body.appendParagraph(linha);
-      });
-
-      if(relatorio.ocorrencias){
-        body.appendParagraph('Ocorrências').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-        body.appendParagraph(relatorio.ocorrencias);
-      }
-
-      body.appendParagraph('Fotos').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      (relatorio.fotos||[]).forEach(function(foto){
-        if(foto.fileId){
-          try{ body.appendImage(LibImages.getBlob(foto.fileId)); }
-          catch(e){ body.appendParagraph('[Não foi possível recuperar a imagem]'); }
-        }
-        body.appendParagraph(foto.legenda || foto.cap || '');
-      });
-
-      doc.saveAndClose();
-      const pdfBlob = DriveApp.getFileById(doc.getId()).getAs('application/pdf');
-      pdfBlob.setName('relatorio-'+relatorio.n+'.pdf');
+      const pdfBlob = montarPdfDeRelatorio_(relatorio, nome);
       archiveFolder.createFile(pdfBlob);
-      DriveApp.getFileById(doc.getId()).setTrashed(true);
       pdfsGerados.push(relatorio.n);
     });
 

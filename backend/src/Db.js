@@ -14,6 +14,7 @@
      cronogramas/<projectId>.json         — etapas do cronograma daquele projeto
      financeiro/<projectId>.json          — etapa -> categorias -> lançamentos
      rdos/<projectId>/<n>.json            — um relatório semanal por arquivo
+     rdoPdfs/<projectId>/relatorio-<n>.pdf — export avulso de um relatório, sob demanda (ver Repo/Rdos.js#gerarPdf)
      images/<projectId>/...               — capa e fotos de RDO de verdade (ver Lib/Images.js)
      archive/<projectId> - <nome>/...     — PDFs + imagens de projetos arquivados (ver Repo/Archive.js)
 
