@@ -26,7 +26,8 @@ function doPost(e){
   var collection = body && body.collection;
   var op = body && body.op;
   var args = (body && body.args) || [];
-  if(!Db[collection] || typeof Db[collection][op]!=='function'){
+  var db = Db();
+  if(!db[collection] || typeof db[collection][op]!=='function'){
     return jsonResponse_({ok:false, error:'Ação desconhecida: '+collection+'.'+op});
   }
 
@@ -37,7 +38,7 @@ function doPost(e){
     return jsonResponse_({ok:false, error:'Sistema ocupado, tente novamente.'});
   }
   try{
-    var result = Db[collection][op].apply(null, args);
+    var result = db[collection][op].apply(null, args);
     return jsonResponse_({ok:true, data: result===undefined ? null : result});
   }catch(err){
     return jsonResponse_({ok:false, error: err.message || String(err)});
@@ -73,7 +74,7 @@ function doGet(e){
   catch(err){ return jsonResponse_({ok:false, error:'args deve ser um array JSON válido.'}); }
 
   try{
-    var result = Db[collection][op].apply(null, args);
+    var result = Db()[collection][op].apply(null, args);
     return jsonResponse_({ok:true, data: result===undefined ? null : result});
   }catch(err){
     return jsonResponse_({ok:false, error: err.message || String(err)});
