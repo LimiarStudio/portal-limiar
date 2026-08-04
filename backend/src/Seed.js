@@ -7,6 +7,7 @@
    Drive/Docs na primeira vez) ou via {"collection":"seed","op":"rodar"}. */
 var Seed = {
   rodar(){
+    seedAdmin_();
     seedCatalogDefaults_();
     seedUsers_();
     seedProjects_();
@@ -14,20 +15,22 @@ var Seed = {
     seedFinanceiro_();
     seedRdos_();
     return {
+      administrador: RepoUsers.administrador(),
       usuarios: RepoUsers.listar().length,
       projetos: RepoProjects.listar().length,
       cronograma: RepoCronograma.listar(1).length,
       relatorios: RepoRdos.listar(1).length,
     };
   },
-  // destrutivo: joga toda pasta de dados pra lixeira do Drive (30 dias pra
-  // recuperar manualmente) e limpa o cache de pastas — NÃO rechama rodar()
-  // sozinho, são dois passos propositalmente separados
+  // destrutivo: joga toda pasta de dados (e o admin.json solto na raiz) pra
+  // lixeira do Drive (30 dias pra recuperar manualmente) e limpa o cache de
+  // pastas — NÃO rechama rodar() sozinho, são dois passos propositalmente separados
   resetar(){
     const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','images','archive'];
     nomes.forEach(function(nome){
       try{ LibFolders.getDataSubfolder(nome).setTrashed(true); }catch(e){}
     });
+    LibDriveStore.deleteFile(LibFolders.getRootFolder(), 'admin.json');
     LibFolders.clearCache();
     return {ok:true};
   },
@@ -108,12 +111,17 @@ function seedCatalogDefaults_(){
   LibDriveStore.writeJson(folder, 'equipamentos.json', equipamentos);
 }
 
+// o administrador não é um "usuário" (ver Repo/Users.js) — é um registro
+// fixo à parte, criado uma vez só; a API pública nunca cria/edita/remove isso
+function seedAdmin_(){
+  const folder = LibFolders.getRootFolder();
+  if(LibDriveStore.readJson(folder, 'admin.json', null)) return;
+  LibDriveStore.writeJson(folder, 'admin.json', {nome:'Joyce Santos', email:'joyce@limiar.com.br'});
+}
+
 function seedUsers_(){
   if(RepoUsers.listar().length) return;
-  // criados direto pela collection, não por RepoUsers.criar — o seed é
-  // justamente o caminho fora-de-banda sancionado pra existir um gestor
-  LibCollection.create('users', {nome:'Joyce Santos', email:'joyce@limiar.com.br', papel:'gestor', criadoEm:new Date().toISOString()});
-  LibCollection.create('users', {nome:'João Costa', email:'joao.costa@email.com', papel:'cliente', criadoEm:new Date().toISOString()});
+  RepoUsers.criar({nome:'João Costa', email:'joao.costa@email.com'});
 }
 
 function seedProjects_(){

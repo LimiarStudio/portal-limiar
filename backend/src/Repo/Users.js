@@ -1,10 +1,11 @@
 /* =================== USUÁRIOS ===================
-   "papel" usa o mesmo vocabulário do site (ROLE 'gestor'/'cliente' em
-   session.js): 'gestor' = acesso total e fixo — existe exatamente UM, nunca
-   criado, editado ou removido por aqui (só via Seed/edição direta no Drive) —
-   'cliente' = acesso definido módulo a módulo, projeto a projeto (ver
-   Repo/Permissions.js). Isto não é autenticação de verdade — não guardamos
-   senha nem sessão. */
+   Sem papéis/roles — cada usuário é só nome + e-mail, e o que ele pode fazer
+   é definido projeto a projeto em Repo/Permissions.js (mais a opção de
+   gerenciar usuários e permissões de um projeto específico). O administrador
+   NÃO é um usuário desta coleção: é um fato fixo do sistema (existe
+   exatamente um, sempre com acesso completo, nunca criado/editado/removido
+   por aqui) — ver administrador() abaixo, guardado à parte em admin.json.
+   Isto não é autenticação de verdade — não guardamos senha nem sessão. */
 var RepoUsers = {
   listar(){ return LibCollection.list('users'); },
   buscar(id){ return LibCollection.get('users', id); },
@@ -12,25 +13,17 @@ var RepoUsers = {
     const alvo = email.trim().toLowerCase();
     return RepoUsers.listar().find(function(u){ return u.email.toLowerCase()===alvo; }) || null;
   },
+  // registro fixo do administrador — não é um "usuário" gerenciável, só uma
+  // informação de exibição (nome/e-mail), populada uma vez pelo Seed
+  administrador(){
+    return LibDriveStore.readJson(LibFolders.getRootFolder(), 'admin.json', null);
+  },
   criar(dados){
-    const nome = dados.nome, email = dados.email, papel = dados.papel;
+    const nome = dados.nome, email = dados.email;
     if(!nome || !email) throw new Error('Informe nome e e-mail.');
-    // o único gestor é um fato definido no Seed — a API pública nunca cria um
-    // segundo, senão "existe exatamente um administrador" deixaria de valer
-    if(papel!=='cliente') throw new Error('Usuários gestor não podem ser criados pela API — apenas via seed/edição direta no Drive.');
     if(RepoUsers.buscarPorEmail(email)) throw new Error('Já existe um usuário com o e-mail '+email+'.');
-    return LibCollection.create('users', {nome:nome, email:email, papel:papel, criadoEm:new Date().toISOString()});
+    return LibCollection.create('users', {nome:nome, email:email, criadoEm:new Date().toISOString()});
   },
-  atualizar(id, patch){
-    const atual = RepoUsers.buscar(id);
-    if(!atual) throw new Error('Documento "'+id+'" não existe em users');
-    if(atual.papel==='gestor') throw new Error('O usuário administrador não pode ser editado.');
-    if(patch.papel==='gestor') throw new Error('Não é possível promover um usuário a gestor pela API.');
-    return LibCollection.update('users', id, patch);
-  },
-  remover(id){
-    const atual = RepoUsers.buscar(id);
-    if(atual && atual.papel==='gestor') throw new Error('O usuário administrador não pode ser removido.');
-    LibCollection.remove('users', id);
-  },
+  atualizar(id, patch){ return LibCollection.update('users', id, patch); },
+  remover(id){ LibCollection.remove('users', id); },
 };

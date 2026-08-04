@@ -2,9 +2,10 @@
    Objeto único que Code.js usa pra despachar Db[collection][op](...args).
 
    Layout de dados no Drive (dentro de ROOT_FOLDER_ID — ver Lib/Folders.js):
-     users/<id>.json                      — contas (nome, e-mail, papel gestor/cliente)
+     admin.json                           — o único administrador (nome, e-mail) — não é um "usuário"
+     users/<id>.json                      — usuários (nome, e-mail — sem papéis/roles)
      projects/<id>.json                   — projetos
-     projectPermissions/<projectId>.json  — o que cada usuário 'cliente' pode em cada módulo
+     projectPermissions/<projectId>.json  — o que cada usuário pode em cada módulo
      catalogDefaults/etapas.json          — catálogo de fábrica de etapas
      catalogDefaults/categorias.json      — catálogo de fábrica de categorias
      catalogDefaults/funcoes.json         — funções de mão de obra (RDO)

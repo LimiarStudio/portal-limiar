@@ -1,15 +1,17 @@
 /* =================== PERMISSÕES POR PROJETO ===================
-   Um documento por projeto, mapeando userId (de usuários 'cliente' — ver
-   Repo/Users.js) para o que ele pode em cada módulo do projeto, mais se ele
-   pode gerenciar usuários e permissões deste projeto. "visualizar" é um
-   controle de verdade (padrão desligado — mais restritivo que deixar tudo
-   implicitamente visível) e é pré-requisito de "write"/"delete": nunca ficam
-   true se "view" for false, mesmo que o chamador tente mandar assim — ver a
-   checagem defensiva em definir(), que nunca confia soment no que foi
-   enviado. Usuários 'gestor' nunca aparecem aqui — o acesso deles é sempre
-   total. Páginas de admin (Configurações, Editar projeto, Usuários e
-   Permissões) não têm — e nunca vão ter — uma entrada aqui: são exclusivas
-   de quem é 'gestor'. Módulos espelham MODULOS_PROJETO em js/helpers.js. */
+   Um documento por projeto, mapeando userId (de Repo/Users.js — não há mais
+   "papéis": qualquer usuário cadastrado é um alvo válido) para o que ele pode
+   em cada módulo do projeto, mais se ele pode gerenciar usuários e
+   permissões deste projeto. "visualizar" é um controle de verdade (padrão
+   desligado — mais restritivo que deixar tudo implicitamente visível) e é
+   pré-requisito de "write"/"delete": nunca ficam true se "view" for false,
+   mesmo que o chamador tente mandar assim — ver a checagem defensiva em
+   definir(), que nunca confia só no que foi enviado. O administrador nunca
+   aparece aqui — não é um usuário desta coleção (ver Repo/Users.js), então
+   nem tem um userId pra ser referenciado; o acesso dele é sempre total.
+   Páginas de admin (Configurações, Editar projeto, Usuários e Permissões)
+   continuam exclusivas dele. Módulos espelham MODULOS_PROJETO em
+   js/helpers.js. */
 var MODULOS_VALIDOS = ['visao', 'rdo', 'financeiro', 'cronograma'];
 
 var RepoPermissions = {
@@ -28,7 +30,6 @@ var RepoPermissions = {
   definir(projectId, userId, permissoesDoUsuario){
     const usuario = RepoUsers.buscar(userId);
     if(!usuario) throw new Error('Usuário não encontrado: '+userId);
-    if(usuario.papel!=='cliente') throw new Error('Só usuários "cliente" podem ter permissões definidas — o gestor sempre tem acesso completo.');
     Object.keys(permissoesDoUsuario).forEach(function(k){
       if(k!=='gerenciarUsuarios' && MODULOS_VALIDOS.indexOf(k)===-1) throw new Error('Módulo desconhecido: '+k);
     });

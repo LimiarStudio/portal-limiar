@@ -50,7 +50,7 @@ function doPost(e){
 // só leituras — nunca mutações — pra uma URL de GET (histórico do navegador,
 // logs, um bot indexando) nunca conseguir alterar dado nenhum
 var LEITURAS_PERMITIDAS_GET = [
-  'users.listar','users.buscar','users.buscarPorEmail',
+  'users.listar','users.buscar','users.buscarPorEmail','users.administrador',
   'projects.listar','projects.buscar',
   'catalog.etapasFactory','catalog.categoriasFactory','catalog.funcoesFactory','catalog.equipamentosFactory',
   'catalog.etapasDoProjeto','catalog.categoriasDoProjeto',
