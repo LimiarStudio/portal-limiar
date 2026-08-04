@@ -2,3 +2,4 @@ Thumbs.db
 .DS_Store
 node_modules/
 backend/.clasp.json
+.claude/settings.local.json

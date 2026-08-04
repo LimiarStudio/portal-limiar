@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(curl -s -L -c /tmp/aps_cookies.txt -b /tmp/aps_cookies.txt https://script.google.com/macros/s/AKfycbwz-gJ4cN6Ay68Fm1ywvyh6A95JtxIN-PKYdH-vViP3akQeuBBAfqXl56K0vjcbCbP0Yg/exec -H 'Content-Type: text/plain' --data '{\"collection\":\"images\",\"op\":\"saveDataUrl\",\"args\":[\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\",1,\"rdo-foto\",{\"n\":48,\"index\":0}]}')"
-    ]
-  }
-}
