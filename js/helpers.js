@@ -99,3 +99,39 @@ const buildNavProjetos = active => {
     (ROLE==='gestor'?`<div class="nav-group">Admin</div>
     <a class="nav-item ${active==='usuarios'?'active':''}" href="${withRole('admin-usuarios.html')}">${ic('users')} Usuários</a>`:'');
 };
+
+/* =================== MENU LATERAL NO CELULAR =================== */
+// abaixo de 900px o menu vira um painel deslizante fora da tela (ver CSS),
+// aberto por um botão hambúrguer — injetado aqui via JS, uma vez só, em vez
+// de repetir esse HTML em cada uma das páginas que usam o app shell
+(function initMobileNav(){
+  const topbar = document.querySelector('.topbar');
+  const sidebar = document.querySelector('.sidebar');
+  if(!topbar || !sidebar) return; // login.html não usa o app shell
+
+  const hamb = document.createElement('button');
+  hamb.className = 'hamburger';
+  hamb.setAttribute('aria-label', 'Abrir menu');
+  hamb.innerHTML = '☰';
+  hamb.onclick = toggleSidebar;
+  topbar.insertBefore(hamb, topbar.firstChild);
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sidebar-backdrop';
+  backdrop.onclick = closeSidebar;
+  sidebar.insertAdjacentElement('afterend', backdrop);
+
+  // fecha o menu ao clicar num item — necessário pras abas trocadas via
+  // setTab() (não recarregam a página, então o menu ficaria aberto por cima)
+  document.querySelector('.nav').addEventListener('click', e=>{
+    if(e.target.closest('.nav-item')) closeSidebar();
+  });
+})();
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-backdrop').classList.toggle('open');
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.querySelector('.sidebar-backdrop').classList.remove('open');
+}
