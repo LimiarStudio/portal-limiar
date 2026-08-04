@@ -22,19 +22,45 @@ var Seed = {
       relatorios: RepoRdos.listar(1).length,
     };
   },
-  // destrutivo: joga toda pasta de dados (e o admin.json solto na raiz) pra
-  // lixeira do Drive (30 dias pra recuperar manualmente) e limpa o cache de
-  // pastas — NÃO rechama rodar() sozinho, são dois passos propositalmente separados
+  // destrutivo: joga toda pasta de dados (e admin.json/sessions.json soltos
+  // na raiz) pra lixeira do Drive (30 dias pra recuperar manualmente) e
+  // limpa o cache de pastas — NÃO rechama rodar() sozinho, são dois passos
+  // propositalmente separados. Depois de resetar, a senha do administrador
+  // precisa ser definida de novo via definirSenhaAdminInicial() (editor).
   resetar(){
     const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','rdoPdfs','images','archive'];
     nomes.forEach(function(nome){
       try{ LibFolders.getDataSubfolder(nome).setTrashed(true); }catch(e){}
     });
     LibDriveStore.deleteFile(LibFolders.getRootFolder(), 'admin.json');
+    LibDriveStore.deleteFile(LibFolders.getRootFolder(), 'sessions.json');
     LibFolders.clearCache();
     return {ok:true};
   },
 };
+
+// bootstrap da senha do administrador — de propósito NÃO é método de Seed
+// (então não é alcançável via despacho da API, só rodando na mão pelo
+// seletor de funções do editor do Apps Script). Passos: 1) crie uma Script
+// Property chamada ADMIN_SENHA_INICIAL com a senha desejada (Project
+// Settings > Script Properties); 2) rode esta função uma vez pelo editor;
+// 3) apague a Script Property depois — ela guarda a senha em texto puro
+// só até esse passo, o admin.json guarda só o hash.
+function definirSenhaAdminInicial(){
+  const props = PropertiesService.getScriptProperties();
+  const senha = props.getProperty('ADMIN_SENHA_INICIAL');
+  if(!senha) throw new Error('Configure a Script Property ADMIN_SENHA_INICIAL antes de rodar isso.');
+  validarSenha_(senha);
+  const folder = LibFolders.getRootFolder();
+  const admin = LibDriveStore.readJson(folder, 'admin.json', null);
+  if(!admin) throw new Error('admin.json não existe ainda — rode Seed.rodar() primeiro.');
+  const salt = gerarSalt_();
+  admin.senhaHash = hashSenha_(senha, salt);
+  admin.senhaSalt = salt;
+  LibDriveStore.writeJson(folder, 'admin.json', admin);
+  props.deleteProperty('ADMIN_SENHA_INICIAL');
+  return {ok:true, mensagem:'Senha do administrador definida. A Script Property foi apagada.'};
+}
 
 function seedCatalogDefaults_(){
   const folder = LibFolders.getDataSubfolder('catalogDefaults');
@@ -121,7 +147,9 @@ function seedAdmin_(){
 
 function seedUsers_(){
   if(RepoUsers.listar().length) return;
-  RepoUsers.criar({nome:'João Costa', email:'joao.costa@email.com'});
+  // senha de demonstração, só pra ter algo pra testar login — troque antes
+  // de qualquer uso real (RepoUsers.redefinirSenha, como administrador)
+  RepoUsers.criar({nome:'João Costa', email:'joao.costa@email.com', senha:'mudar123'});
 }
 
 function seedProjects_(){

@@ -2,8 +2,9 @@
    Objeto único que Code.js usa pra despachar Db[collection][op](...args).
 
    Layout de dados no Drive (dentro de ROOT_FOLDER_ID — ver Lib/Folders.js):
-     admin.json                           — o único administrador (nome, e-mail) — não é um "usuário"
-     users/<id>.json                      — usuários (nome, e-mail — sem papéis/roles)
+     admin.json                           — o único administrador (nome, e-mail, senhaHash/senhaSalt) — não é um "usuário"
+     sessions.json                        — sessões de login ativas (token -> userId/isAdmin/expiraEm)
+     users/<id>.json                      — usuários (nome, e-mail, senhaHash/senhaSalt — sem papéis/roles)
      projects/<id>.json                   — projetos
      projectPermissions/<projectId>.json  — o que cada usuário pode em cada módulo
      catalogDefaults/etapas.json          — catálogo de fábrica de etapas
@@ -28,6 +29,7 @@
    carregar. */
 function Db(){
   return {
+    auth: RepoAuth,
     users: RepoUsers,
     projects: RepoProjects,
     permissions: RepoPermissions,
