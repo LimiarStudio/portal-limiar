@@ -14,6 +14,16 @@ function usuarioIndisponivel(){
   alert('Ainda não temos um banco de dados de usuários — esse cadastro é só uma prévia de como vai funcionar quando o login/cadastro real estiver pronto.');
 }
 
+// valida como o backend real vai validar (nome/e-mail obrigatórios, senha
+// com pelo menos 6 caracteres) antes de mostrar o aviso de "ainda não
+// funciona" — a prévia já se comporta como o cadastro de verdade vai se comportar
+function adicionarUsuarioPreview(){
+  const nome=$('#nu-nome').value.trim(), email=$('#nu-email').value.trim(), senha=$('#nu-senha').value;
+  if(!nome||!email){alert('Informe nome e e-mail.');return;}
+  if(senha.length<6){alert('A senha precisa ter pelo menos 6 caracteres.');return;}
+  usuarioIndisponivel();
+}
+
 function initAdminUsuariosPage(){
   requireAuth();
   renderUserChip();
@@ -48,9 +58,11 @@ function initAdminUsuariosPage(){
     <div class="form-grid">
       <div class="fg"><label>Nome</label><input id="nu-nome" placeholder="Nome completo"></div>
       <div class="fg"><label>E-mail</label><input id="nu-email" type="email" placeholder="nome@email.com"></div>
+      <div class="fg full"><label>Senha</label><input id="nu-senha" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password"></div>
     </div>
+    <p class="card-note" style="margin-top:10px;margin-bottom:0">A senha é definida aqui, pelo administrador — o próprio usuário pode trocá-la depois de entrar (quando o login estiver ligado ao sistema de verdade).</p>
     <div style="display:flex;justify-content:flex-end;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
-      <button class="btn-primary" style="width:auto" onclick="usuarioIndisponivel()">+ Adicionar usuário</button>
+      <button class="btn-primary" style="width:auto" onclick="adicionarUsuarioPreview()">+ Adicionar usuário</button>
     </div>
   </div>`;
 }
