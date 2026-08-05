@@ -22,18 +22,19 @@ var Seed = {
       relatorios: RepoRdos.listar(1).length,
     };
   },
-  // destrutivo: joga toda pasta de dados (e admin.json/sessions.json soltos
-  // na raiz) pra lixeira do Drive (30 dias pra recuperar manualmente) e
-  // limpa o cache de pastas — NÃO rechama rodar() sozinho, são dois passos
-  // propositalmente separados. Depois de resetar, a senha do administrador
-  // precisa ser definida de novo via definirSenhaAdminInicial() (editor).
+  // destrutivo: joga toda pasta de DADOS DE DEMONSTRAÇÃO (usuários, projetos,
+  // etc.) pra lixeira do Drive (30 dias pra recuperar manualmente) e limpa o
+  // cache de pastas — NÃO rechama rodar() sozinho, são dois passos
+  // propositalmente separados. Deliberadamente NÃO mexe em admin.json nem em
+  // sessions.json: a conta do administrador não é "dado de demonstração", e
+  // apagar a sessão ativa deslogaria quem acabou de chamar esta própria
+  // função admin-only, exigindo redefinir a senha do zero (via Script
+  // Property + definirSenhaAdminInicial) só pra conseguir logar de volta.
   resetar(){
     const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','rdoPdfs','images','archive'];
     nomes.forEach(function(nome){
       try{ LibFolders.getDataSubfolder(nome).setTrashed(true); }catch(e){}
     });
-    LibDriveStore.deleteFile(LibFolders.getRootFolder(), 'admin.json');
-    LibDriveStore.deleteFile(LibFolders.getRootFolder(), 'sessions.json');
     LibFolders.clearCache();
     return {ok:true};
   },
