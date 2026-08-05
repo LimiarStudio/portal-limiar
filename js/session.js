@@ -37,10 +37,10 @@ function renderUserChip(){
   ROLE = urlRole() || storedRole() || 'gestor';
   persistSession(ROLE);
   if(ROLE==='cliente'){
-    $('#userName').textContent="João Costa";$('#userRole').textContent="Cliente";
+    $('#userName').textContent="João Costa";
     $('#avatar').textContent="JC";$('#avatar').style.background="var(--blue)";
   }else{
-    $('#userName').textContent="Joyce Santos";$('#userRole').textContent="Gestor";
+    $('#userName').textContent="Joyce Santos";
     $('#avatar').textContent="JS";$('#avatar').style.background="var(--violet)";
   }
 }
