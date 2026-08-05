@@ -5,8 +5,8 @@
    administrador NÃO é um usuário desta coleção: é um fato fixo do sistema
    (existe exatamente um, sempre com acesso completo, nunca criado/editado/
    removido por aqui) — ver administrador() abaixo, guardado à parte em
-   admin.json. A senha do administrador só pode ser definida uma vez, na mão,
-   pelo editor do Apps Script (ver Seed.js#definirSenhaAdminInicial) — nunca
+   admin.json. A senha do administrador só pode ser definida (ou trocada) na
+   mão, pelo editor do Apps Script (ver Seed.js#definirSenhaAdmin) — nunca
    pela API pública.
 
    senhaHash/senhaSalt NUNCA saem por listar()/buscar()/buscarPorEmail() —

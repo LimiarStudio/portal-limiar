@@ -29,7 +29,7 @@ var Seed = {
   // sessions.json: a conta do administrador não é "dado de demonstração", e
   // apagar a sessão ativa deslogaria quem acabou de chamar esta própria
   // função admin-only, exigindo redefinir a senha do zero (via Script
-  // Property + definirSenhaAdminInicial) só pra conseguir logar de volta.
+  // Property + definirSenhaAdmin) só pra conseguir logar de volta.
   resetar(){
     const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','rdoPdfs','images','archive'];
     nomes.forEach(function(nome){
@@ -40,17 +40,20 @@ var Seed = {
   },
 };
 
-// bootstrap da senha do administrador — de propósito NÃO é método de Seed
-// (então não é alcançável via despacho da API, só rodando na mão pelo
-// seletor de funções do editor do Apps Script). Passos: 1) crie uma Script
-// Property chamada ADMIN_SENHA_INICIAL com a senha desejada (Project
-// Settings > Script Properties); 2) rode esta função uma vez pelo editor;
-// 3) apague a Script Property depois — ela guarda a senha em texto puro
-// só até esse passo, o admin.json guarda só o hash.
-function definirSenhaAdminInicial(){
+// define (ou troca) a senha do administrador — de propósito NÃO é método de
+// Seed (então não é alcançável via despacho da API, só rodando na mão pelo
+// seletor de funções do editor do Apps Script). Serve igual da primeira vez
+// e em qualquer troca de senha depois — não é "rodar uma vez só": só exige
+// que admin.json já exista (e ele nunca é apagado por Seed.resetar), então
+// rodar de novo simplesmente sobrescreve o hash anterior, sem precisar
+// reseedar nada. Passos: 1) crie/atualize a Script Property ADMIN_SENHA com
+// a senha desejada (Project Settings > Script Properties); 2) rode esta
+// função pelo editor; 3) a Script Property é apagada sozinha depois — ela
+// guarda a senha em texto puro só até esse passo, o admin.json guarda só o hash.
+function definirSenhaAdmin(){
   const props = PropertiesService.getScriptProperties();
-  const senha = props.getProperty('ADMIN_SENHA_INICIAL');
-  if(!senha) throw new Error('Configure a Script Property ADMIN_SENHA_INICIAL antes de rodar isso.');
+  const senha = props.getProperty('ADMIN_SENHA');
+  if(!senha) throw new Error('Configure a Script Property ADMIN_SENHA antes de rodar isso.');
   validarSenha_(senha);
   const folder = LibFolders.getRootFolder();
   const admin = LibDriveStore.readJson(folder, 'admin.json', null);
@@ -59,7 +62,7 @@ function definirSenhaAdminInicial(){
   admin.senhaHash = hashSenha_(senha, salt);
   admin.senhaSalt = salt;
   LibDriveStore.writeJson(folder, 'admin.json', admin);
-  props.deleteProperty('ADMIN_SENHA_INICIAL');
+  props.deleteProperty('ADMIN_SENHA');
   return {ok:true, mensagem:'Senha do administrador definida. A Script Property foi apagada.'};
 }
 
