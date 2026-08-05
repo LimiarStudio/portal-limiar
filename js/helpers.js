@@ -28,31 +28,51 @@ const MODULOS_PROJETO = [['visao','Visão Geral','gauge'],['rdo','Relatórios Se
   ['financeiro','Financeiro','wallet'],['cronograma','Cronograma','calendar']];
 const modulosDoProjeto = p => p.tipo==='relatorios' ? MODULOS_PROJETO.filter(([k])=>k==='rdo') : MODULOS_PROJETO;
 
-// permissões por usuário, por projeto — hoje só existem pro usuário de demonstração fixo
-// (USUARIO_DEMO), já que o protótipo ainda não tem login/cadastro de verdade. Ficam no
-// localStorage, no mesmo padrão das outras customizações de admin. "view" é pré-requisito
-// de "write"/"delete" — não dá pra editar ou excluir um módulo que não se pode nem ver (a
-// interface já impede isso, mas salvarPermissoesModal também garante na hora de salvar).
-// "gerenciarUsuarios" é uma permissão à parte dos módulos: dá acesso à própria página de
-// Usuários e Permissões (nunca a Configurações/Editar projeto, e nunca afeta o
-// administrador — esse sempre tem acesso completo e não pode ser removido nem editado por
-// ninguém).
-const USUARIO_DEMO = 'João Costa';
+// permissões por usuário, por projeto — vêm do backend (Api.permissions.doUsuario),
+// buscadas uma vez por carregamento de página (carregarPermissoes, chamada no
+// init de cada página de projeto) e guardadas em permissionsCache; o administrador
+// nunca precisa disso (sempre acesso completo, por um caminho totalmente separado
+// em modulosVisiveis/clientePodeGerenciarUsuarios). "view" é pré-requisito de
+// "write"/"delete" — o backend já garante isso na hora de salvar (permissions.definir),
+// então mesmo se a interface deixasse passar algo incoerente o servidor corrige.
+// "gerenciarUsuarios" é uma permissão à parte dos módulos: dá acesso à própria página
+// de Usuários e Permissões (nunca a Configurações/Editar projeto, e nunca afeta o
+// administrador — esse sempre tem acesso completo e não pode ser removido nem editado
+// por ninguém).
+// catálogo de etapas/categorias por projeto — vem do backend (Api.catalog), buscado sob
+// demanda (garantirCatalogCache) na primeira vez que uma tela realmente precisa dele
+// (abrir "+ Nova etapa"/"+ Nova categoria" ou a página de Configurações), não em todo
+// carregamento de página — a maioria das visitas a um projeto nunca chega a abrir esses
+// modais, então não vale a pena gastar uma chamada a mais em toda visita
+const catalogCache = {};
+async function recarregarCatalogo(pid){
+  const [etapas, categorias] = await Promise.all([
+    Api.catalog.etapasDoProjeto(pid),
+    Api.catalog.categoriasDoProjeto(pid),
+  ]);
+  catalogCache[pid] = {etapas, categorias};
+}
+async function garantirCatalogCache(pid){
+  if(catalogCache[pid]) return;
+  await recarregarCatalogo(pid);
+}
+
 const PERMISSOES_PADRAO = () => ({view:false, write:false, delete:false});
+const permissionsCache = {};
+async function carregarPermissoes(pid){
+  if(ROLE==='gestor' || !CURRENT_USER) return;
+  try{ permissionsCache[pid] = await Api.permissions.doUsuario(pid, CURRENT_USER.id); }
+  catch(e){ permissionsCache[pid] = null; }
+}
 const permissoesUsuario = (pid, modulos) => {
   const base={gerenciarUsuarios:false};
   modulos.forEach(([k])=>base[k]=PERMISSOES_PADRAO());
-  try{
-    const salvas=JSON.parse(localStorage.getItem('obraview_permissoes_'+pid)||'null');
-    if(salvas){
-      modulos.forEach(([k])=>{ if(salvas[k]) base[k]=salvas[k]; });
-      if(salvas.gerenciarUsuarios!==undefined) base.gerenciarUsuarios=salvas.gerenciarUsuarios;
-    }
-  }catch(e){}
+  const salvas = permissionsCache[pid];
+  if(salvas){
+    modulos.forEach(([k])=>{ if(salvas[k]) base[k]=salvas[k]; });
+    if(salvas.gerenciarUsuarios!==undefined) base.gerenciarUsuarios=salvas.gerenciarUsuarios;
+  }
   return base;
-};
-const salvarPermissoesUsuario = (pid, permissoes) => {
-  try{ localStorage.setItem('obraview_permissoes_'+pid, JSON.stringify(permissoes)); }catch(e){}
 };
 // true quando a sessão atual é o usuário de demonstração (ROLE==='cliente') e ele foi
 // autorizado a gerenciar usuários e permissões deste projeto — o administrador
@@ -62,13 +82,19 @@ const clientePodeGerenciarUsuarios = pid => {
   return !!p && ROLE==='cliente' && permissoesUsuario(pid, modulosDoProjeto(p)).gerenciarUsuarios;
 };
 // módulos que a sessão atual pode efetivamente ver: o administrador sempre vê todos os
-// módulos do projeto; o cliente de demonstração só vê os que tiverem "view" autorizado
+// módulos do projeto; usuários comuns só veem os que tiverem "view" autorizado
 const modulosVisiveis = p => {
   const todos = modulosDoProjeto(p);
   if(ROLE==='gestor') return todos;
   const perm = permissoesUsuario(p.id, todos);
   return todos.filter(([k])=>perm[k].view);
 };
+// se a sessão atual pode criar/editar (podeEditar) ou excluir (podeExcluir) algo de um
+// módulo — administrador sempre pode; usuário comum, só se tiver write/delete autorizado
+// pra esse módulo naquele projeto (o backend garante "view" como pré-requisito ao salvar,
+// mas a interface já nem oferece o write/delete sem view, pra não confundir)
+const podeEditar = (pid, modulo) => ROLE==='gestor' || permissoesUsuario(pid, MODULOS_PROJETO)[modulo].write;
+const podeExcluir = (pid, modulo) => ROLE==='gestor' || permissoesUsuario(pid, MODULOS_PROJETO)[modulo].delete;
 
 // bloco "Módulos" do menu lateral, reaproveitado em toda página secundária de um
 // projeto (Configurações, Editar projeto, Usuários e Permissões...) — só lista os

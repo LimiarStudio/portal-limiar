@@ -25,13 +25,16 @@ var Seed = {
   // destrutivo: joga toda pasta de DADOS DE DEMONSTRAÇÃO (usuários, projetos,
   // etc.) pra lixeira do Drive (30 dias pra recuperar manualmente) e limpa o
   // cache de pastas — NÃO rechama rodar() sozinho, são dois passos
-  // propositalmente separados. Deliberadamente NÃO mexe em admin.json nem em
-  // sessions.json: a conta do administrador não é "dado de demonstração", e
-  // apagar a sessão ativa deslogaria quem acabou de chamar esta própria
-  // função admin-only, exigindo redefinir a senha do zero (via Script
-  // Property + definirSenhaAdmin) só pra conseguir logar de volta.
+  // propositalmente separados. Deliberadamente NÃO mexe em admin.json: a
+  // conta do administrador não é "dado de demonstração" (sessões de login
+  // não vivem no Drive — ver Repo/Auth.js — então não há risco de derrubar
+  // quem chamou esta própria função admin-only). Também NÃO mexe em
+  // catalogDefaults: apesar de ter sido populado pelo Seed, é catálogo de
+  // referência real (nomes de etapa, categoria, função, equipamento) que todo
+  // projeto de verdade também vai usar — não é conteúdo de demonstração
+  // descartável como os usuários/projetos fake abaixo.
   resetar(){
-    const nomes = ['users','projects','projectPermissions','catalogDefaults','projectCatalog','cronogramas','financeiro','rdos','rdoPdfs','images','archive'];
+    const nomes = ['users','projects','projectPermissions','projectCatalog','cronogramas','financeiro','rdos','rdoPdfs','images','archive'];
     nomes.forEach(function(nome){
       try{ LibFolders.getDataSubfolder(nome).setTrashed(true); }catch(e){}
     });

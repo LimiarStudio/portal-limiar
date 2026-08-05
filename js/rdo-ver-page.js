@@ -6,6 +6,20 @@
 
 function infoBox(l,v){return `<div class="fg"><label>${l}</label><div style="padding:9px 11px;background:var(--bg2);border-radius:8px">${v}</div></div>`;}
 
+async function baixarPdf(pid, n){
+  const btn=$('#btn-baixar-pdf');
+  const original=btn.textContent;
+  btn.disabled=true; btn.textContent='Gerando PDF…';
+  try{
+    const {url}=await Api.rdos.gerarPdf(pid, n);
+    window.open(url, '_blank');
+  }catch(e){
+    alert('Não foi possível gerar o PDF: '+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent=original;
+  }
+}
+
 function renderRdoVer(p, r){
   const voltar=withRole(projetoHref(p.id,'rdo'));
   return `
@@ -38,14 +52,24 @@ function renderRdoVer(p, r){
   </div>`;
 }
 
-function initRdoVerPage(){
+async function initRdoVerPage(){
   requireAuth();
   renderUserChip();
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
   const n=+new URLSearchParams(window.location.search).get('n');
-  const p=projetos.find(x=>x.id===PROJETO_ID);
-  const r=p&&(rdos[PROJETO_ID]||[]).find(x=>x.n===n);
-  if(!p||!r){ window.location.href=withRole('projetos.html'); return; }
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  let p, r;
+  try{
+    [p, r] = await Promise.all([
+      Api.projects.buscar(PROJETO_ID),
+      Api.rdos.buscar(PROJETO_ID, n),
+      carregarPermissoes(PROJETO_ID),
+    ]);
+  }catch(e){
+    window.location.href=withRole('projetos.html'); return;
+  }
+  const idx=projetos.findIndex(x=>x.id===PROJETO_ID);
+  if(idx===-1) projetos.push(p); else projetos[idx]=p;
   if(ROLE!=='gestor' && !permissoesUsuario(PROJETO_ID, modulosDoProjeto(p)).rdo.view){
     window.location.href=withRole(projetoHref(PROJETO_ID)); return;
   }
@@ -53,8 +77,8 @@ function initRdoVerPage(){
   buildNavProjeto();
   $('#crumb').textContent='Projetos · '+p.nome+' · Relatórios';
   $('#pageTitle').textContent='Relatório nº '+r.n;
-  $('#topActions').innerHTML=ROLE==='gestor'
-    ?`<a class="btn-primary" style="width:auto;display:inline-block;text-decoration:none;text-align:center" href="${withRole('rdo-novo.html?projeto='+PROJETO_ID+'&n='+r.n)}">Editar relatório</a>`
-    :'';
+  $('#topActions').innerHTML=
+    (podeEditar(PROJETO_ID,'rdo')?`<a class="btn-primary" style="width:auto;display:inline-block;text-decoration:none;text-align:center" href="${withRole('rdo-novo.html?projeto='+PROJETO_ID+'&n='+r.n)}">Editar relatório</a>`:'')
+    +`<button id="btn-baixar-pdf" class="btn" style="width:auto;margin-left:8px" onclick="baixarPdf(${PROJETO_ID},${r.n})">Baixar PDF</button>`;
   $('#content').innerHTML=renderRdoVer(p, r);
 }

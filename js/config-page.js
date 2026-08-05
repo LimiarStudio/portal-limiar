@@ -1,74 +1,68 @@
 /* =================== CONFIGURAÇÕES: ETAPAS, CATEGORIAS E SUAS RELAÇÕES ===================
    configuracoes.html define o projeto via ?projeto=N na URL (não por PROJETO_ID fixo, já que
    essa página é compartilhada entre todos os projetos). O catálogo de etapas/categorias é
-   local a cada projeto — mudanças aqui não afetam os outros projetos. */
+   local a cada projeto — mudanças aqui não afetam os outros projetos. A distinção entre "de
+   fábrica" (só suprimida) e "cadastrada pelo usuário" (removida de verdade) já é resolvida
+   inteiramente pelo backend (RepoCatalog.removerEtapa/removerCategoria) — aqui é só chamar
+   Api.catalog.* e recarregar. */
 let PROJETO_ID;
 
 function buildNavConfig(p){
   $('#nav').innerHTML = projectModulosNavHtml(p) + adminNavHtml(p.id,'config');
 }
 
-function addEtapa(){
+async function addEtapa(){
   const nome=$('#cfg-etapa-nome').value.trim();
   if(!nome){alert('Informe o nome da etapa.');return;}
   if(etapasPadrao(PROJETO_ID).some(e=>e.toLowerCase()===nome.toLowerCase())){alert('Essa etapa já existe neste projeto.');return;}
+  const btn=document.querySelector('button[onclick="addEtapa()"]');
+  btn.disabled=true;
   try{
-    const custom=JSON.parse(localStorage.getItem('obraview_custom_etapas_'+PROJETO_ID)||'[]');
-    custom.push(nome);
-    localStorage.setItem('obraview_custom_etapas_'+PROJETO_ID, JSON.stringify(custom));
-    // se essa etapa padrão tinha sido removida antes deste projeto, um novo
-    // cadastro com o mesmo nome já cancela a remoção
-    const removed=JSON.parse(localStorage.getItem('obraview_removed_etapas_'+PROJETO_ID)||'[]').filter(e=>e!==nome);
-    localStorage.setItem('obraview_removed_etapas_'+PROJETO_ID, JSON.stringify(removed));
-  }catch(e){}
-  renderConfigContent();
+    await Api.catalog.adicionarEtapa(PROJETO_ID, nome);
+    await recarregarCatalogo(PROJETO_ID);
+    renderConfigContent();
+  }catch(e){
+    alert('Não foi possível adicionar a etapa: '+e.message);
+    btn.disabled=false;
+  }
 }
-function removeEtapa(nome){
+async function removeEtapa(nome){
   if(!confirm(`Remover a etapa "${nome}" deste projeto? Outros projetos não são afetados, e etapas já lançadas no cronograma continuam existindo.`)) return;
   try{
-    if(ETAPAS_PADRAO_FACTORY.includes(nome)){
-      const removed=JSON.parse(localStorage.getItem('obraview_removed_etapas_'+PROJETO_ID)||'[]');
-      if(!removed.includes(nome)){
-        removed.push(nome);
-        localStorage.setItem('obraview_removed_etapas_'+PROJETO_ID, JSON.stringify(removed));
-      }
-    }
-    const custom=JSON.parse(localStorage.getItem('obraview_custom_etapas_'+PROJETO_ID)||'[]').filter(e=>e!==nome);
-    localStorage.setItem('obraview_custom_etapas_'+PROJETO_ID, JSON.stringify(custom));
-  }catch(e){}
-  renderConfigContent();
+    await Api.catalog.removerEtapa(PROJETO_ID, nome);
+    await recarregarCatalogo(PROJETO_ID);
+    renderConfigContent();
+  }catch(e){
+    alert('Não foi possível remover a etapa: '+e.message);
+  }
 }
 
-function addCategoria(){
+async function addCategoria(){
   const nome=$('#cfg-cat-nome').value.trim();
   if(!nome){alert('Informe o nome da categoria.');return;}
   if(categoriasPadrao(PROJETO_ID).some(c=>c.nome.toLowerCase()===nome.toLowerCase())){alert('Essa categoria já existe neste projeto.');return;}
   const etapas=Array.from(document.querySelectorAll('.cfg-etapa-check:checked')).map(c=>c.value);
   if(!etapas.length){alert('Selecione ao menos uma etapa relacionada.');return;}
-  const novo={nome, etapas};
+  const btn=document.querySelector('button[onclick="addCategoria()"]');
+  btn.disabled=true;
   try{
-    const custom=JSON.parse(localStorage.getItem('obraview_custom_categorias_'+PROJETO_ID)||'[]');
-    custom.push(novo);
-    localStorage.setItem('obraview_custom_categorias_'+PROJETO_ID, JSON.stringify(custom));
-    const removed=JSON.parse(localStorage.getItem('obraview_removed_categorias_'+PROJETO_ID)||'[]').filter(c=>c!==nome);
-    localStorage.setItem('obraview_removed_categorias_'+PROJETO_ID, JSON.stringify(removed));
-  }catch(e){}
-  renderConfigContent();
+    await Api.catalog.adicionarCategoria(PROJETO_ID, {nome, etapas});
+    await recarregarCatalogo(PROJETO_ID);
+    renderConfigContent();
+  }catch(e){
+    alert('Não foi possível adicionar a categoria: '+e.message);
+    btn.disabled=false;
+  }
 }
-function removeCategoria(nome){
+async function removeCategoria(nome){
   if(!confirm(`Remover a categoria "${nome}" deste projeto? Outros projetos não são afetados.`)) return;
   try{
-    if(CATEGORIAS_PADRAO_FACTORY.some(c=>c.nome===nome)){
-      const removed=JSON.parse(localStorage.getItem('obraview_removed_categorias_'+PROJETO_ID)||'[]');
-      if(!removed.includes(nome)){
-        removed.push(nome);
-        localStorage.setItem('obraview_removed_categorias_'+PROJETO_ID, JSON.stringify(removed));
-      }
-    }
-    const custom=JSON.parse(localStorage.getItem('obraview_custom_categorias_'+PROJETO_ID)||'[]').filter(c=>c.nome!==nome);
-    localStorage.setItem('obraview_custom_categorias_'+PROJETO_ID, JSON.stringify(custom));
-  }catch(e){}
-  renderConfigContent();
+    await Api.catalog.removerCategoria(PROJETO_ID, nome);
+    await recarregarCatalogo(PROJETO_ID);
+    renderConfigContent();
+  }catch(e){
+    alert('Não foi possível remover a categoria: '+e.message);
+  }
 }
 
 function editCategoriaEtapas(nome){
@@ -85,16 +79,20 @@ function editCategoriaEtapas(nome){
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveCategoriaEtapas('${nome.replace(/'/g,"\\'")}')">Salvar</button>`);
 }
-function saveCategoriaEtapas(nome){
+async function saveCategoriaEtapas(nome){
   const etapas=Array.from(document.querySelectorAll('.edit-cat-etapa-check:checked')).map(c=>c.value);
   if(!etapas.length){alert('Selecione ao menos uma etapa relacionada.');return;}
+  const btn=document.querySelector('#modalRoot .btn-primary');
+  btn.disabled=true;
   try{
-    const overrides=JSON.parse(localStorage.getItem('obraview_categoria_etapas_'+PROJETO_ID)||'{}');
-    overrides[nome]=etapas;
-    localStorage.setItem('obraview_categoria_etapas_'+PROJETO_ID, JSON.stringify(overrides));
-  }catch(e){}
-  closeModal();
-  renderConfigContent();
+    await Api.catalog.definirEtapasDaCategoria(PROJETO_ID, nome, etapas);
+    await recarregarCatalogo(PROJETO_ID);
+    closeModal();
+    renderConfigContent();
+  }catch(e){
+    alert('Não foi possível salvar as etapas da categoria: '+e.message);
+    btn.disabled=false;
+  }
 }
 
 function renderConfigContent(){
@@ -148,13 +146,19 @@ function renderConfigContent(){
   </div>`;
 }
 
-function initConfigPage(){
+async function initConfigPage(){
   requireAuth();
   renderUserChip();
   if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   PROJETO_ID = +new URLSearchParams(window.location.search).get('projeto');
-  const p = projetos.find(x=>x.id===PROJETO_ID);
-  if(!p){ window.location.href=withRole('projetos.html'); return; }
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  let p;
+  try{
+    p = await Api.projects.buscar(PROJETO_ID);
+    await garantirCatalogCache(PROJETO_ID);
+  }catch(e){
+    window.location.href=withRole('projetos.html'); return;
+  }
   buildNavConfig(p);
   $('#crumb').textContent='Projetos · '+p.nome;
   $('#pageTitle').textContent='Configurações — '+p.nome;

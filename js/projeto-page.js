@@ -40,12 +40,31 @@ function renderProjetoTabs(){
   if(current.tab==='cronograma'){ if(ROLE==='gestor') ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="openEtapa(${PROJETO_ID})">+ Nova etapa</button>`; c.innerHTML+=renderCrono(p);}
 }
 
-function initProjetoPage(){
+async function initProjetoPage(){
   requireAuth();
   renderUserChip();
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
-  const p=projetos.find(x=>x.id===PROJETO_ID);
-  if(!p){ window.location.href=withRole('projetos.html'); return; }
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  // busca tudo que as 4 abas podem precisar de uma vez só, antes da primeira
+  // renderização — troca de aba (setTab) continua síncrona/instantânea depois disso
+  let p, crono, fin, rdosList;
+  try{
+    [p, crono, fin, rdosList] = await Promise.all([
+      Api.projects.buscar(PROJETO_ID),
+      Api.cronograma.listar(PROJETO_ID),
+      Api.financeiro.tudo(PROJETO_ID),
+      Api.rdos.listar(PROJETO_ID),
+      carregarPermissoes(PROJETO_ID),
+    ]);
+  }catch(e){
+    window.location.href=withRole('projetos.html'); return;
+  }
+  const idx=projetos.findIndex(x=>x.id===PROJETO_ID);
+  if(idx===-1) projetos.push(p); else projetos[idx]=p;
+  cronogramas[PROJETO_ID]=crono;
+  financeiro[PROJETO_ID]=fin;
+  rdos[PROJETO_ID]=rdosList;
+
   const tabParam=new URLSearchParams(window.location.search).get('tab');
   const permitidas=modulosVisiveis(p).map(([k])=>k);
   current.tab = (tabParam && permitidas.includes(tabParam)) ? tabParam : permitidas[0];

@@ -1,6 +1,6 @@
-/* =================== CRONOGRAMA: ETAPAS =================== */
-// converte uma data "DD/MM/AAAA" num número comparável, pra ordenar o cronograma por data
-const dataChave = s => { const [d,m,a]=s.split('/').map(Number); return a*10000+m*100+d; };
+/* =================== CRONOGRAMA: ETAPAS ===================
+   A ordenação por data de início já vem pronta do backend (Repo/Cronograma.js
+   reordena a cada escrita) — nada aqui precisa ordenar a lista de novo. */
 
 // lê e valida os campos de início/término/avanço do modal de etapa (usado tanto ao
 // adicionar quanto ao editar) — retorna {ini,fim,av,dur} formatados, ou null se inválido
@@ -15,7 +15,8 @@ function lerFormEtapa(){
   return {ini:dd(ini), fim:dd(fim), av, dur};
 }
 
-function openEtapa(pid){
+async function openEtapa(pid){
+  await garantirCatalogCache(pid);
   const atuais=ensureCronograma(pid).map(e=>e.nome);
   const disponiveis=etapasPadrao(pid).filter(e=>!atuais.includes(e));
   if(!disponiveis.length){
@@ -34,14 +35,20 @@ function openEtapa(pid){
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveEtapa(${pid})">Salvar etapa</button>`);
 }
-function saveEtapa(pid){
+async function saveEtapa(pid){
   const nome=$('#et-nome').value;
   const parsed=lerFormEtapa();
   if(!parsed) return;
-  const lista=ensureCronograma(pid);
-  lista.push({id:'t'+Date.now(), nome, ...parsed});
-  lista.sort((a,b)=>dataChave(a.ini)-dataChave(b.ini));
-  closeModal();renderProjetoTabs();
+  const btn=document.querySelector('#modalRoot .btn-primary');
+  btn.disabled=true;
+  try{
+    await Api.cronograma.adicionar(pid, {nome, ini:parsed.ini, fim:parsed.fim, av:parsed.av, dur:parsed.dur});
+    cronogramas[pid]=await Api.cronograma.listar(pid);
+    closeModal();renderProjetoTabs();
+  }catch(e){
+    alert('Não foi possível adicionar a etapa: '+e.message);
+    btn.disabled=false;
+  }
 }
 function editEtapa(pid, id){
   const item=ensureCronograma(pid).find(x=>x.id===id);
@@ -56,19 +63,27 @@ function editEtapa(pid, id){
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveEtapaEdit(${pid},'${id}')">Salvar alterações</button>`);
 }
-function saveEtapaEdit(pid, id){
+async function saveEtapaEdit(pid, id){
   const parsed=lerFormEtapa();
   if(!parsed) return;
-  const item=ensureCronograma(pid).find(x=>x.id===id);
-  if(!item) return;
-  Object.assign(item, parsed);
-  ensureCronograma(pid).sort((a,b)=>dataChave(a.ini)-dataChave(b.ini));
-  closeModal();renderProjetoTabs();
+  const btn=document.querySelector('#modalRoot .btn-primary');
+  btn.disabled=true;
+  try{
+    await Api.cronograma.atualizar(pid, id, {ini:parsed.ini, fim:parsed.fim, av:parsed.av, dur:parsed.dur});
+    cronogramas[pid]=await Api.cronograma.listar(pid);
+    closeModal();renderProjetoTabs();
+  }catch(e){
+    alert('Não foi possível salvar as alterações: '+e.message);
+    btn.disabled=false;
+  }
 }
-function removeCronogramaEtapa(pid, id, nome){
+async function removeCronogramaEtapa(pid, id, nome){
   if(!confirm(`Remover a etapa "${nome}" do cronograma deste projeto? As categorias e gastos já lançados nela não são apagados, mas deixam de aparecer até que a etapa seja adicionada novamente.`)) return;
-  const lista=ensureCronograma(pid);
-  const i=lista.findIndex(x=>x.id===id);
-  if(i>=0) lista.splice(i,1);
-  renderProjetoTabs();
+  try{
+    await Api.cronograma.remover(pid, id);
+    cronogramas[pid]=await Api.cronograma.listar(pid);
+    renderProjetoTabs();
+  }catch(e){
+    alert('Não foi possível remover a etapa: '+e.message);
+  }
 }

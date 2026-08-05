@@ -40,7 +40,7 @@ var RepoUsers = {
     delete seguro.senha; delete seguro.senhaHash; delete seguro.senhaSalt;
     return despojarSenha_(LibCollection.update('users', id, seguro));
   },
-  remover(id){ LibCollection.remove('users', id); },
+  remover(id){ LibCollection.remove('users', id); invalidarContaExiste_(id); },
   redefinirSenha(id, novaSenha){
     validarSenha_(novaSenha);
     const salt = gerarSalt_();

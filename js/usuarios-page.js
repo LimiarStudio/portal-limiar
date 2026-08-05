@@ -1,15 +1,20 @@
-/* =================== ADMIN: USUÁRIOS E PERMISSÕES ===================
-   usuarios.html define o projeto via ?projeto=N na URL. Em vez de um papel fixo (Gestor/
-   Cliente), cada usuário adicionado tem permissões granulares por módulo: pode editar
-   (criar/alterar) e pode excluir, independentes uma da outra. Além dos módulos, dá pra
-   autorizar alguém a "gerenciar usuários e permissões" deste projeto — passa a enxergar
-   esta mesma página, mas nunca Configurações nem Editar projeto, e nunca pode alterar o
-   administrador (ele tem acesso completo e fixo, sempre — ver USUARIO_DEMO/permissoesUsuario/
-   clientePodeGerenciarUsuarios em helpers.js, compartilhados com projeto-page.js pra liberar
-   o link de navegação certo). Convidar gente de verdade ainda depende do sistema de login e
-   cadastro, que não existe — por enquanto só o usuário de demonstração fixo do protótipo
-   (ver session.js/renderUserChip) pode ter as permissões editadas. */
+/* =================== ADMIN: USUÁRIOS E PERMISSÕES (POR PROJETO) ===================
+   usuarios.html define o projeto via ?projeto=N na URL. Cada usuário do sistema (ver Admin
+   · Usuários) pode ter permissões granulares por módulo neste projeto: pode ver, pode editar
+   (criar/alterar) e pode excluir, independentes entre si. Além dos módulos, dá pra autorizar
+   alguém a "gerenciar usuários e permissões" deste projeto — passa a enxergar esta mesma
+   página, mas nunca Configurações nem Editar projeto, e nunca pode alterar o administrador
+   (acesso completo e fixo, sempre).
+
+   Nota: salvar/remover permissões (permissions.definir/remover) é uma ação restrita ao
+   administrador no backend (ver ACOES_ADMIN em backend/src/Code.js) — um usuário delegado a
+   "gerenciar usuários" consegue abrir esta página e ver tudo, mas só o administrador de fato
+   consegue salvar uma alteração; a tentativa de um delegado mostra o erro do servidor
+   claramente, em vez de falhar em silêncio. */
 let PROJETO_ID;
+let usuariosSistema = [];
+let permissoesDoc = null;
+let administrador = null;
 
 function resumoAcesso(perm, modulos){
   const visiveis=modulos.filter(([k])=>perm[k].view).map(([,l])=>l);
@@ -35,12 +40,25 @@ function onPermViewChange(viewCheckbox){
   if(!viewCheckbox.checked){ writeCb.checked=false; deleteCb.checked=false; }
 }
 
-function editarPermissoes(pid){
-  const p=projetos.find(x=>x.id===pid);
+function permissaoDoUsuario(userId, modulos){
+  const base={gerenciarUsuarios:false};
+  modulos.forEach(([k])=>base[k]={view:false, write:false, delete:false});
+  const salvas=permissoesDoc && permissoesDoc.permissoes && permissoesDoc.permissoes[userId];
+  if(salvas){
+    modulos.forEach(([k])=>{ if(salvas[k]) base[k]=salvas[k]; });
+    if(salvas.gerenciarUsuarios!==undefined) base.gerenciarUsuarios=salvas.gerenciarUsuarios;
+  }
+  return base;
+}
+
+function editarPermissoes(userId){
+  const p=projetos.find(x=>x.id===PROJETO_ID);
+  const u=usuariosSistema.find(x=>x.id===userId);
+  if(!u) return;
   const modulos=modulosDoProjeto(p);
-  const perm=permissoesUsuario(pid, modulos);
-  modal('Permissões de '+USUARIO_DEMO,`
-    <p class="card-note" style="margin-bottom:14px">Escolha o que ${USUARIO_DEMO} pode ver em cada módulo deste projeto — e, só onde puder ver, se também pode editar ou excluir. Configurações e Editar projeto continuam exclusivos do administrador, sempre.</p>
+  const perm=permissaoDoUsuario(userId, modulos);
+  modal('Permissões de '+u.nome,`
+    <p class="card-note" style="margin-bottom:14px">Escolha o que ${escapeHtml(u.nome)} pode ver em cada módulo deste projeto — e, só onde puder ver, se também pode editar ou excluir. Configurações e Editar projeto continuam exclusivos do administrador, sempre.</p>
     <table>
       <thead><tr><th>Módulo</th><th style="text-align:center">Pode visualizar</th><th style="text-align:center">Pode editar</th><th style="text-align:center">Pode excluir</th></tr></thead>
       <tbody>
@@ -57,29 +75,68 @@ function editarPermissoes(pid){
       Pode gerenciar usuários e permissões deste projeto
     </label>
     <p class="card-note" style="margin-top:6px;margin-bottom:0">Passa a poder abrir esta página e editar as permissões de outros usuários — Configurações e Editar projeto continuam fora do alcance, e o administrador nunca é afetado.</p>
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+      <button class="mini-btn mini-btn-danger" onclick="removerAcesso(${userId},'${u.nome.replace(/'/g,"\\'")}')">Remover acesso ao projeto</button>
+    </div>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
-     <button class="btn-primary" style="width:auto" onclick="salvarPermissoesModal(${pid})">Salvar permissões</button>`);
+     <button class="btn-primary" style="width:auto" onclick="salvarPermissoesModal(${userId})">Salvar permissões</button>`);
 }
-function salvarPermissoesModal(pid){
+async function salvarPermissoesModal(userId){
   const permissoes={gerenciarUsuarios: $('#perm-gerenciar-usuarios').checked};
   document.querySelectorAll('.perm-view').forEach(cb=>{ permissoes[cb.dataset.modulo]={view:cb.checked, write:false, delete:false}; });
-  // even com a interface já impedindo, garante aqui de novo que write/delete nunca
-  // fiquem true sem view (defesa extra, não confia só no estado dos checkboxes)
-  document.querySelectorAll('.perm-write').forEach(cb=>{ const p=permissoes[cb.dataset.modulo]; p.write=p.view && cb.checked; });
-  document.querySelectorAll('.perm-delete').forEach(cb=>{ const p=permissoes[cb.dataset.modulo]; p.delete=p.view && cb.checked; });
-  salvarPermissoesUsuario(pid, permissoes);
+  // mesmo com a interface já impedindo, garante aqui de novo que write/delete nunca
+  // fiquem true sem view (defesa extra, não confia só no estado dos checkboxes) —
+  // o backend faz a mesma checagem, então essa é só uma segunda camada
+  document.querySelectorAll('.perm-write').forEach(cb=>{ const pm=permissoes[cb.dataset.modulo]; pm.write=pm.view && cb.checked; });
+  document.querySelectorAll('.perm-delete').forEach(cb=>{ const pm=permissoes[cb.dataset.modulo]; pm.delete=pm.view && cb.checked; });
+  const btn=document.querySelector('#modalRoot .btn-primary');
+  btn.disabled=true;
+  try{
+    permissoesDoc=await Api.permissions.definir(PROJETO_ID, userId, permissoes);
+    closeModal();
+    renderUsuariosContent();
+  }catch(e){
+    alert('Não foi possível salvar as permissões: '+e.message);
+    btn.disabled=false;
+  }
+}
+async function removerAcesso(userId, nome){
+  if(!confirm(`Remover o acesso de "${nome}" a este projeto?`)) return;
+  try{
+    permissoesDoc=await Api.permissions.remover(PROJETO_ID, userId);
+    closeModal();
+    renderUsuariosContent();
+  }catch(e){
+    alert('Não foi possível remover o acesso: '+e.message);
+  }
+}
+
+function abrirAdicionarUsuario(){
+  const jaTemAcesso=new Set(Object.keys((permissoesDoc&&permissoesDoc.permissoes)||{}).map(Number));
+  const disponiveis=usuariosSistema.filter(u=>!jaTemAcesso.has(u.id));
+  if(!disponiveis.length){
+    modal('Adicionar usuário',`<div class="empty">Todos os usuários do sistema já têm algum acesso a este projeto.</div>`,
+      `<button class="btn" onclick="closeModal()">Fechar</button>`);
+    return;
+  }
+  modal('Adicionar usuário',`
+    <div class="fg full"><label>Usuário</label>
+      <select id="add-user-select">${disponiveis.map(u=>`<option value="${u.id}">${escapeHtml(u.nome)} — ${escapeHtml(u.email)}</option>`).join('')}</select>
+    </div>
+    <p class="card-note" style="margin-top:14px">Depois de escolher, defina o que ele pode ver, editar ou excluir em cada módulo.</p>
+  `,`<button class="btn" onclick="closeModal()">Cancelar</button>
+     <button class="btn-primary" style="width:auto" onclick="continuarAdicionarUsuario()">Continuar</button>`);
+}
+function continuarAdicionarUsuario(){
+  const userId=+$('#add-user-select').value;
   closeModal();
-  renderUsuariosContent(pid);
+  editarPermissoes(userId);
 }
 
-function convidarUsuario(){
-  alert('Disponível quando o sistema de login e cadastro de usuários estiver pronto — por enquanto só dá pra ajustar as permissões do usuário de demonstração.');
-}
-
-function renderUsuariosContent(pid){
-  const p=projetos.find(x=>x.id===pid);
+function renderUsuariosContent(){
+  const p=projetos.find(x=>x.id===PROJETO_ID);
   const modulos=modulosDoProjeto(p);
-  const perm=permissoesUsuario(pid, modulos);
+  const comAcesso=Object.keys((permissoesDoc&&permissoesDoc.permissoes)||{}).map(Number);
   $('#content').innerHTML=`
   <div class="card">
     <h3>Usuários com acesso a este projeto</h3>
@@ -88,34 +145,54 @@ function renderUsuariosContent(pid){
       <thead><tr><th>Usuário</th><th>Acesso</th><th></th></tr></thead>
       <tbody>
         <tr>
-          <td><b>Joyce Santos</b></td>
+          <td><b>${escapeHtml(administrador.nome)}</b></td>
           <td><span class="badge b-and">Administrador — acesso completo</span></td>
           <td></td>
         </tr>
-        <tr>
-          <td><b>${USUARIO_DEMO}</b></td>
-          <td style="font-size:12px">${resumoAcesso(perm, modulos)}</td>
-          <td style="text-align:right"><button class="mini-btn" onclick="editarPermissoes(${pid})">Editar permissões</button></td>
-        </tr>
+        ${comAcesso.map(userId=>{
+          const u=usuariosSistema.find(x=>x.id===userId);
+          if(!u) return '';
+          const perm=permissaoDoUsuario(userId, modulos);
+          return `<tr>
+            <td><b>${escapeHtml(u.nome)}</b></td>
+            <td style="font-size:12px">${resumoAcesso(perm, modulos)}</td>
+            <td style="text-align:right"><button class="mini-btn" onclick="editarPermissoes(${userId})">Editar permissões</button></td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>
     <div style="text-align:right;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
-      <button class="btn-primary" style="width:auto" onclick="convidarUsuario()">+ Adicionar usuário</button>
+      <button class="btn-primary" style="width:auto" onclick="abrirAdicionarUsuario()">+ Adicionar usuário</button>
     </div>
   </div>`;
 }
 
-function initUsuariosPage(){
+async function initUsuariosPage(){
   requireAuth();
   renderUserChip();
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
-  const p=projetos.find(x=>x.id===PROJETO_ID);
-  if(!p){ window.location.href=withRole('projetos.html'); return; }
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  let p;
+  try{
+    [p, usuariosSistema, permissoesDoc, administrador] = await Promise.all([
+      Api.projects.buscar(PROJETO_ID),
+      Api.users.listar(),
+      Api.permissions.obter(PROJETO_ID),
+      Api.users.administrador(),
+      carregarPermissoes(PROJETO_ID),
+    ]);
+  }catch(e){
+    window.location.href=withRole('projetos.html'); return;
+  }
+  const idx=projetos.findIndex(x=>x.id===PROJETO_ID);
+  if(idx===-1) projetos.push(p); else projetos[idx]=p;
+
   const autorizado = ROLE==='gestor' || clientePodeGerenciarUsuarios(PROJETO_ID);
   if(!autorizado){ window.location.href=withRole('projetos.html'); return; }
+
   $('#nav').innerHTML = projectModulosNavHtml(p) + adminNavHtml(p.id,'usuarios', ROLE!=='gestor');
   $('#crumb').textContent='Projetos · '+p.nome;
   $('#pageTitle').textContent='Usuários e Permissões — '+p.nome;
   $('#topActions').innerHTML='';
-  renderUsuariosContent(PROJETO_ID);
+  renderUsuariosContent();
 }

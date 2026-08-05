@@ -5,16 +5,12 @@
    PROJETO_ID já vem declarado por projeto-page.js, carregado antes deste arquivo. */
 let moRows=[], eqRows=[], fotoRows=[], ativRows=[];
 let editing=null;
+let currentN=null;
 
-// "DD/MM/AAAA a DD/MM/AAAA" -> ["AAAA-MM-DD","AAAA-MM-DD"], pros <input type="date">
-function semanaParaInputs(semana){
-  const [ini,fim]=semana.split(' a ').map(s=>s.trim());
-  return [dataParaInput(ini), dataParaInput(fim)];
-}
 function renderRdoNovoForm(p, nextN, editing){
   const etapas=ensureCronograma(p.id);
   const voltar=withRole(projetoHref(p.id,'rdo'));
-  const [iniVal,fimVal]=editing?semanaParaInputs(editing.semana):['2026-07-28','2026-08-01'];
+  const [iniVal,fimVal]=editing?semanaParaIso(editing.semana):['',''];
   const respVal=editing?editing.resp:'Joyce Santos';
   return `
   <a class="page-back" href="${voltar}">← Voltar para Relatórios</a>
@@ -121,7 +117,7 @@ function drawFotos(){
 function updateFotoCap(i,val){ fotoRows[i].cap=val; }
 function delFoto(i){ fotoRows.splice(i,1); drawFotos(); }
 
-function saveRDO(pid){
+async function saveRDO(pid){
   if(!ativRows.length){alert('Adicione pelo menos uma atividade antes de salvar.');return;}
   const iniV=$('#rd-ini').value, fimV=$('#rd-fim').value;
   if(!iniV||!fimV){alert('Informe o início e o término da semana.');return;}
@@ -129,31 +125,56 @@ function saveRDO(pid){
   const resp=$('#rd-resp').value.trim()||'—';
   const ocorr=$('#rd-ocorr').value.trim();
 
-  if(editing){
-    Object.assign(editing, {semana, resp, mo:moRows.slice(), eq:eqRows.slice(), ativ:ativRows.slice(), ocorr, fotos:fotoRows.slice()});
-    alert(`Relatório nº ${editing.n} atualizado com sucesso!`);
-  }else{
-    if(!rdos[pid]) rdos[pid]=[];
-    const nextN=Math.max(0,...rdos[pid].map(r=>r.n))+1;
-    rdos[pid].unshift({n:nextN, semana, resp, mo:moRows.slice(), eq:eqRows.slice(), ativ:ativRows.slice(), ocorr, fotos:fotoRows.slice()});
-    alert(`Relatório nº ${nextN} salvo e publicado!\n\nNo sistema real:\n• O cliente receberia a notificação em tempo real\n• Cada progresso lançado atualizaria a etapa vinculada no cronograma\n• As fotos ficariam no histórico da obra`);
+  const btn=document.querySelector('button.btn-primary');
+  const textoOriginal=btn.textContent;
+  btn.disabled=true;
+  try{
+    const rMem={n:currentN, semana, resp, mo:moRows.slice(), eq:eqRows.slice(), ativ:ativRows.slice(), ocorr, fotos:fotoRows.slice()};
+    await Api.rdos.salvar(pid, rMem, (enviadas,total)=>{
+      if(total) btn.textContent=`Enviando foto ${enviadas}/${total}…`;
+    });
+    alert(editing ? `Relatório nº ${currentN} atualizado com sucesso!` : `Relatório nº ${currentN} salvo e publicado!`);
+    window.location.href = withRole(projetoHref(pid,'rdo'));
+  }catch(e){
+    alert('Não foi possível salvar o relatório: '+e.message);
+    btn.disabled=false;
+    btn.textContent=textoOriginal;
   }
-  window.location.href = withRole(projetoHref(pid,'rdo'));
 }
 
-function initRdoNovoPage(){
+async function initRdoNovoPage(){
   requireAuth();
   renderUserChip();
-  if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
   const editN=new URLSearchParams(window.location.search).get('n');
-  const p=projetos.find(x=>x.id===PROJETO_ID);
-  if(!p){ window.location.href=withRole('projetos.html'); return; }
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  let p, etapas, nextNumero;
+  try{
+    [p, etapas, nextNumero] = await Promise.all([
+      Api.projects.buscar(PROJETO_ID),
+      Api.cronograma.listar(PROJETO_ID),
+      Api.rdos.proximoNumero(PROJETO_ID),
+      carregarPermissoes(PROJETO_ID),
+    ]);
+  }catch(e){
+    window.location.href=withRole('projetos.html'); return;
+  }
+  const idx=projetos.findIndex(x=>x.id===PROJETO_ID);
+  if(idx===-1) projetos.push(p); else projetos[idx]=p;
+  cronogramas[PROJETO_ID]=etapas;
+
+  if(!podeEditar(PROJETO_ID,'rdo')){ window.location.href=withRole('projetos.html'); return; }
+
   current.tab='rdo';
   buildNavProjeto();
   $('#topActions').innerHTML='';
 
-  editing = editN ? (rdos[PROJETO_ID]||[]).find(x=>x.n===+editN) : null;
+  if(editN){
+    try{ editing = await Api.rdos.buscar(PROJETO_ID, +editN); }
+    catch(e){ editing = null; }
+  }else{
+    editing = null;
+  }
   if(editN && !editing){ window.location.href=withRole(projetoHref(PROJETO_ID,'rdo')); return; }
 
   if(editing){
@@ -165,9 +186,9 @@ function initRdoNovoPage(){
     moRows=[]; eqRows=[]; ativRows=[]; fotoRows=[];
   }
 
+  currentN = editing ? editing.n : nextNumero;
   $('#crumb').textContent='Projetos · '+p.nome+' · Relatórios';
   $('#pageTitle').textContent=editing?'Editar Relatório nº '+editing.n:'Novo Relatório Semanal';
-  const nextN=editing?editing.n:Math.max(0,...(rdos[PROJETO_ID]||[]).map(r=>r.n))+1;
-  $('#content').innerHTML = renderRdoNovoForm(p, nextN, editing);
+  $('#content').innerHTML = renderRdoNovoForm(p, currentN, editing);
   drawRows('mo');drawRows('eq');drawAtiv();drawFotos();
 }

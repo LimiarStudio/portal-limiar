@@ -27,13 +27,26 @@ var LibImages = {
       throw new Error('kind deve ser "capa" ou "rdo-foto".');
     }
 
-    // reenvio (ex.: trocar a capa) substitui o arquivo anterior de mesmo nome
-    const existente = folder.getFilesByName(filename);
-    while(existente.hasNext()) existente.next().setTrashed(true);
+    // reenvio (ex.: trocar a capa) substitui o(s) arquivo(s) anterior(es) —
+    // por prefixo (não só nome exato), pra não deixar órfão quando a extensão
+    // muda (ex.: capa.png -> capa.jpg)
+    const prefixo = kind==='capa' ? 'capa.' : filename;
+    const antigos = folder.getFiles();
+    while(antigos.hasNext()){
+      const f = antigos.next();
+      if(f.getName().indexOf(prefixo)===0) f.setTrashed(true);
+    }
 
     const blob = Utilities.newBlob(bytes, match[1], filename);
     const file = folder.createFile(blob);
-    return {fileId: file.getId(), name: filename, url: 'https://drive.google.com/uc?id='+file.getId()};
+    // arquivo do Drive é privado por padrão (dono = conta que fez o deploy,
+    // ver executeAs em appsscript.json) — sem isso, um <img src> no navegador
+    // de um visitante anônimo bate num muro de login do Google
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // "uc?id=" é bloqueado pelo ORB do Chrome quando usado como <img src> de
+    // outra origem (funciona só em navegação direta) — "lh3.googleusercontent.com/d/"
+    // é o formato que o próprio Google usa pra miniaturas embutidas e não tem esse problema
+    return {fileId: file.getId(), name: filename, url: 'https://lh3.googleusercontent.com/d/'+file.getId()};
   },
   remove(fileId){
     try{ DriveApp.getFileById(fileId).setTrashed(true); }catch(e){}

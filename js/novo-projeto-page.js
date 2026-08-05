@@ -70,26 +70,40 @@ function renderNovoProjetoForm(){
   </div>`;
 }
 
-function salvarNovoProjeto(){
+async function salvarNovoProjeto(){
   const nome=$('#np-nome').value.trim(), cliente=$('#np-cliente').value.trim();
   const resp=$('#np-resp').value.trim(), endereco=$('#np-endereco').value.trim();
   const iniV=$('#np-inicio').value, fimV=$('#np-termino').value;
   if(!nome||!cliente||!resp||!endereco){alert('Preencha nome, cliente, responsável e endereço.');return;}
   if(!iniV||!fimV){alert('Informe as datas de início e término.');return;}
   if(fimV<iniV){alert('A data de término não pode ser antes da data de início.');return;}
-  const nextId=Math.max(0,...projetos.map(x=>x.id))+1;
-  const novo={
-    id:nextId, nome, cliente, resp, endereco,
-    inicio:inputParaData(iniV), termino:inputParaData(fimV),
-    avanco:0, icon: novaImagem?'':'🏗️', imagem: novaImagem||'', tipo:tipoSelecionado,
-  };
+  const btn=document.querySelector('button.btn-primary');
+  const textoOriginal=btn.textContent;
+  btn.disabled=true; btn.textContent='Criando...';
   try{
-    const extras=JSON.parse(localStorage.getItem('obraview_extra_projetos')||'[]');
-    extras.push(novo);
-    localStorage.setItem('obraview_extra_projetos', JSON.stringify(extras));
-  }catch(e){}
-  alert('Projeto criado com sucesso!');
-  window.location.href=withRole(projetoHref(nextId));
+    // sem id ainda — a capa (se houver) só pode ser enviada DEPOIS que o
+    // projeto existir de verdade, já que Api.images.saveCapa precisa do id
+    const novo=await Api.projects.criar({
+      nome, cliente, resp, endereco,
+      inicio:inputParaData(iniV), termino:inputParaData(fimV),
+      avanco:0, icon: novaImagem?'':'🏗️', imagem:null, tipo:tipoSelecionado,
+    });
+    if(novaImagem){
+      try{
+        const up=await Api.images.saveCapa(novo.id, novaImagem);
+        novo.imagem=(await Api.projects.atualizar(novo.id, {imagem:up.url})).imagem;
+      }catch(e){
+        // o projeto já existe — não trava o usuário aqui por causa só da capa
+        alert('O projeto foi criado, mas a imagem de capa não pôde ser enviada. Tente novamente em Editar Projeto.');
+      }
+    }
+    projetos.push(novo);
+    window.location.href=withRole(projetoHref(novo.id));
+  }catch(e){
+    alert('Não foi possível criar o projeto: '+e.message);
+    btn.disabled=false;
+    btn.textContent=textoOriginal;
+  }
 }
 
 function initNovoProjetoPage(){

@@ -57,6 +57,9 @@ var RepoRdos = {
     while(existente.hasNext()) existente.next().setTrashed(true);
 
     const file = folder.createFile(pdfBlob);
+    // mesma razão do Lib/Images.js: privado por padrão bloquearia até o
+    // próprio administrador de abrir o link fora da conta que fez o deploy
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     return {fileId: file.getId(), name: filename, url: file.getUrl()};
   },
 };

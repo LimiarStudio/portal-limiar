@@ -18,13 +18,16 @@
         <div class="brand-sub">Gestão de Obras</div>
       </div>
     </div>
-    <div class="field"><label>E-mail</label><input type="email" value="joyce@limiar.eng.br"></div>
-    <div class="field"><label>Senha</label><input type="password" value="••••••••"></div>
-    <button class="btn-primary" onclick="login()">Entrar</button>
-    <div class="login-foot">Protótipo de demonstração — dados fictícios.</div>
+    <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com" autocomplete="username"></div>
+    <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="Sua senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+    <div class="login-error" id="login-error" style="display:none;color:var(--red,#d33);font-size:13px;margin:-6px 0 14px"></div>
+    <button class="btn-primary" id="login-btn" onclick="login()">Entrar</button>
+    <div class="login-foot">Portal Limiar — acesso restrito.</div>
   </div>
 </div>
 
+<script src="js/helpers.js"></script>
+<script src="js/api.js"></script>
 <script src="js/login.js"></script>
 </body>
 </html>

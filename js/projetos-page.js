@@ -13,12 +13,18 @@ function renderProjetos(){
   }).join('')+`</div>`;
 }
 
-function initProjetosPage(){
+async function initProjetosPage(){
   requireAuth();
   renderUserChip();
   buildNavProjetos('projetos');
   $('#crumb').textContent='Início';
   $('#pageTitle').textContent='Meus Projetos';
   if(ROLE==='gestor') $('#topActions').innerHTML=`<a class="btn-primary" style="width:auto;display:inline-block;text-decoration:none;text-align:center" href="${withRole('novo-projeto.html')}">+ Novo projeto</a>`;
-  $('#content').innerHTML = renderProjetos();
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  try{
+    projetos.splice(0, projetos.length, ...await Api.projects.listar());
+    $('#content').innerHTML = renderProjetos();
+  }catch(e){
+    $('#content').innerHTML = `<div class="card"><div class="empty">${escapeHtml(e.message)}</div></div>`;
+  }
 }

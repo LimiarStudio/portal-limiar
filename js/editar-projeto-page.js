@@ -77,46 +77,59 @@ function abrirModalArquivar(pid){
 function onArquivarInputChange(){
   $('#arq-confirm-btn').disabled = $('#arq-confirm-input').value !== 'ARQUIVAR PROJETO';
 }
-function confirmarArquivar(pid){
+async function confirmarArquivar(pid){
+  const btn=$('#arq-confirm-btn');
+  btn.disabled=true;
   try{
-    const arquivados=JSON.parse(localStorage.getItem('obraview_arquivados')||'[]');
-    if(!arquivados.includes(pid)){
-      arquivados.push(pid);
-      localStorage.setItem('obraview_arquivados', JSON.stringify(arquivados));
-    }
-  }catch(e){}
-  closeModal();
-  alert('Projeto arquivado. Os relatórios foram convertidos em PDF e salvos no Google Drive, e a entrada foi removida do sistema.');
-  window.location.href=withRole('projetos.html');
+    await Api.archive.arquivarProjeto(pid, 'ARQUIVAR PROJETO');
+    closeModal();
+    alert('Projeto arquivado. Os relatórios foram convertidos em PDF e salvos no Google Drive, e a entrada foi removida do sistema.');
+    window.location.href=withRole('projetos.html');
+  }catch(e){
+    alert('Não foi possível arquivar o projeto: '+e.message);
+    btn.disabled=false;
+  }
 }
 
-function salvarEdicaoProjeto(pid){
+async function salvarEdicaoProjeto(pid){
   const nome=$('#ep-nome').value.trim(), cliente=$('#ep-cliente').value.trim();
   const resp=$('#ep-resp').value.trim(), endereco=$('#ep-endereco').value.trim();
   const iniV=$('#ep-inicio').value, fimV=$('#ep-termino').value;
   if(!nome||!cliente||!resp||!endereco){alert('Preencha nome, cliente, responsável e endereço.');return;}
   if(!iniV||!fimV){alert('Informe as datas de início e término.');return;}
   if(fimV<iniV){alert('A data de término não pode ser antes da data de início.');return;}
-  const p=projetos.find(x=>x.id===pid);
-  Object.assign(p,{nome, cliente, resp, endereco, inicio:inputParaData(iniV), termino:inputParaData(fimV)});
-  if(novaImagem!==undefined) p.imagem=novaImagem;
+  const btn=document.querySelector('button.btn-primary');
+  const textoOriginal=btn.textContent;
+  btn.disabled=true; btn.textContent='Salvando...';
   try{
-    localStorage.setItem('obraview_projeto_'+pid, JSON.stringify({
-      nome:p.nome, cliente:p.cliente, resp:p.resp, endereco:p.endereco,
-      inicio:p.inicio, termino:p.termino, imagem:p.imagem,
-    }));
-  }catch(e){}
-  alert('Projeto atualizado com sucesso!');
-  window.location.href=withRole(projetoHref(pid));
+    const patch={nome, cliente, resp, endereco, inicio:inputParaData(iniV), termino:inputParaData(fimV)};
+    if(novaImagem!==undefined){
+      // string vazia = capa removida explicitamente; qualquer outra string = nova capa pra enviar
+      patch.imagem = novaImagem==='' ? null : (await Api.images.saveCapa(pid, novaImagem)).url;
+    }
+    const atualizado=await Api.projects.atualizar(pid, patch);
+    const idx=projetos.findIndex(x=>x.id===pid);
+    if(idx!==-1) projetos[idx]=atualizado;
+    alert('Projeto atualizado com sucesso!');
+    window.location.href=withRole(projetoHref(pid));
+  }catch(e){
+    alert('Não foi possível salvar as alterações: '+e.message);
+    btn.disabled=false;
+    btn.textContent=textoOriginal;
+  }
 }
 
-function initEditarProjetoPage(){
+async function initEditarProjetoPage(){
   requireAuth();
   renderUserChip();
   if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
-  const p=projetos.find(x=>x.id===PROJETO_ID);
-  if(!p){ window.location.href=withRole('projetos.html'); return; }
+  $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
+  let p;
+  try{ p=await Api.projects.buscar(PROJETO_ID); }
+  catch(e){ window.location.href=withRole('projetos.html'); return; }
+  const idx=projetos.findIndex(x=>x.id===PROJETO_ID);
+  if(idx===-1) projetos.push(p); else projetos[idx]=p;
   novaImagem=undefined;
   $('#nav').innerHTML = projectModulosNavHtml(p) + adminNavHtml(p.id,'editar');
   $('#crumb').textContent='Projetos · '+p.nome;
