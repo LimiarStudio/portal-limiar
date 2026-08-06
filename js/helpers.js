@@ -57,6 +57,20 @@ async function garantirCatalogCache(pid){
   await recarregarCatalogo(pid);
 }
 
+// recalcula p.avanco (Progresso Geral) a partir do cronograma atual e persiste
+// no backend — chamada depois de qualquer mutação no cronograma (adicionar/
+// editar/remover etapa, ou uma atividade de relatório lançando avanço numa
+// etapa, ver rdo-novo-page.js) pra a listagem de projetos (que só busca
+// projects.listar(), nunca o cronograma de cada um) continuar mostrando o
+// número certo sem precisar mudar como aquela tela busca dados
+async function recalcularAvancoProjeto(pid){
+  const novo = progressoGeral(pid);
+  const p = projetos.find(x=>x.id===pid);
+  if(p && p.avanco===novo) return;
+  await Api.projects.atualizar(pid, {avanco:novo});
+  if(p) p.avanco = novo;
+}
+
 const PERMISSOES_PADRAO = () => ({view:false, write:false, delete:false});
 const permissionsCache = {};
 async function carregarPermissoes(pid){

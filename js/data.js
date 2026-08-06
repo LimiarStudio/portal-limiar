@@ -62,6 +62,19 @@ const categoriaTotals = pid => {
   return Object.values(totals).sort((a,b)=>b.prev-a.prev);
 };
 
+// progresso geral do projeto = média do avanço de cada etapa do cronograma,
+// ponderada pela duração (etapas mais longas pesam mais no todo) — 0 se o
+// cronograma ainda não tem nenhuma etapa. Persistido em p.avanco (ver
+// recalcularAvancoProjeto em helpers.js) toda vez que o cronograma muda, pra
+// continuar disponível na listagem de projetos sem precisar buscar o
+// cronograma de cada um só pra montar aquela tela.
+const progressoGeral = pid => {
+  const etapas = ensureCronograma(pid);
+  const duracaoTotal = etapas.reduce((a,e)=>a+e.dur,0);
+  if(!duracaoTotal) return 0;
+  return Math.round(etapas.reduce((a,e)=>a+e.av*e.dur,0) / duracaoTotal);
+};
+
 // gasto realizado por etapa, para o donut da Visão Geral — só etapas do
 // cronograma (mesma base do finTotalRealizado) e só as que já têm gasto
 const gastoPorEtapa = pid => etapasFinanceiras(pid)

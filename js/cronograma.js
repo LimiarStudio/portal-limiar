@@ -44,6 +44,7 @@ async function saveEtapa(pid){
   try{
     await Api.cronograma.adicionar(pid, {nome, ini:parsed.ini, fim:parsed.fim, av:parsed.av, dur:parsed.dur});
     cronogramas[pid]=await Api.cronograma.listar(pid);
+    await recalcularAvancoProjeto(pid);
     closeModal();renderProjetoTabs();
   }catch(e){
     alert('Não foi possível adicionar a etapa: '+e.message);
@@ -71,6 +72,7 @@ async function saveEtapaEdit(pid, id){
   try{
     await Api.cronograma.atualizar(pid, id, {ini:parsed.ini, fim:parsed.fim, av:parsed.av, dur:parsed.dur});
     cronogramas[pid]=await Api.cronograma.listar(pid);
+    await recalcularAvancoProjeto(pid);
     closeModal();renderProjetoTabs();
   }catch(e){
     alert('Não foi possível salvar as alterações: '+e.message);
@@ -82,6 +84,7 @@ async function removeCronogramaEtapa(pid, id, nome){
   try{
     await Api.cronograma.remover(pid, id);
     cronogramas[pid]=await Api.cronograma.listar(pid);
+    await recalcularAvancoProjeto(pid);
     renderProjetoTabs();
   }catch(e){
     alert('Não foi possível remover a etapa: '+e.message);

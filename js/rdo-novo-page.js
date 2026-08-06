@@ -117,6 +117,43 @@ function drawFotos(){
 function updateFotoCap(i,val){ fotoRows[i].cap=val; }
 function delFoto(i){ fotoRows.splice(i,1); drawFotos(); }
 
+// soma, por etapa, o avanço de todas as atividades do relatório vinculadas a
+// ela — usado por saveRDO pra saber quanto empurrar o avanço de cada etapa
+// do cronograma quando o relatório é salvo (ver comentário lá embaixo)
+function somarAvancoPorEtapa(ativ){
+  const out={};
+  (ativ||[]).forEach(a=>{ if(a.etapa) out[a.etapa]=(out[a.etapa]||0)+(+a.av||0); });
+  return out;
+}
+
+// "Avanço a lançar" numa atividade é sempre incremental ("+5% essa semana",
+// não "a etapa está em 5%" — daí o "+" na exibição em drawAtiv/renderRdoVer),
+// então salvar o relatório soma esse valor ao avanço já registrado na etapa
+// correspondente do cronograma. Comparar contra o relatório ANTERIOR (não só
+// aplicar direto) é o que evita contar duas vezes ao editar um relatório já
+// salvo: só a DIFERENÇA entre o que tinha antes e o que tem agora é aplicada
+// — reduzir o avanço lançado, trocar de etapa ou remover o vínculo também
+// funcionam corretamente, cada um vira só a diferença certa por etapa.
+async function atualizarAvancoCronograma(pid, ativAntes, ativDepois){
+  const antes=somarAvancoPorEtapa(ativAntes), depois=somarAvancoPorEtapa(ativDepois);
+  const etapasAfetadas=new Set([...Object.keys(antes), ...Object.keys(depois)]);
+  let mudou=false;
+  for(const nomeEtapa of etapasAfetadas){
+    const delta=(depois[nomeEtapa]||0)-(antes[nomeEtapa]||0);
+    if(!delta) continue;
+    const etapa=ensureCronograma(pid).find(e=>e.nome===nomeEtapa);
+    if(!etapa) continue; // etapa pode ter sido removida do cronograma desde o relatório anterior
+    const novoAv=Math.max(0, Math.min(100, etapa.av+delta));
+    if(novoAv===etapa.av) continue;
+    await Api.cronograma.atualizar(pid, etapa.id, {av:novoAv});
+    mudou=true;
+  }
+  if(mudou){
+    cronogramas[pid]=await Api.cronograma.listar(pid);
+    await recalcularAvancoProjeto(pid);
+  }
+}
+
 async function saveRDO(pid){
   if(!ativRows.length){alert('Adicione pelo menos uma atividade antes de salvar.');return;}
   const iniV=$('#rd-ini').value, fimV=$('#rd-fim').value;
@@ -133,6 +170,13 @@ async function saveRDO(pid){
     await Api.rdos.salvar(pid, rMem, (enviadas,total)=>{
       if(total) btn.textContent=`Enviando foto ${enviadas}/${total}…`;
     });
+    try{
+      await atualizarAvancoCronograma(pid, editing ? editing.ativ : [], ativRows);
+    }catch(e){
+      // o relatório em si já salvou com sucesso — um problema só em propagar o
+      // avanço pro cronograma não deveria impedir o usuário de seguir em frente
+      console.warn('Não foi possível atualizar o avanço do cronograma:', e.message);
+    }
     alert(editing ? `Relatório nº ${currentN} atualizado com sucesso!` : `Relatório nº ${currentN} salvo e publicado!`);
     window.location.href = withRole(projetoHref(pid,'rdo'));
   }catch(e){
