@@ -30,10 +30,25 @@ var RepoRdos = {
     const numeros = RepoRdos.listar(projectId).map(function(r){ return r.n; });
     return numeros.length ? Math.max.apply(null, numeros)+1 : 1;
   },
-  // cobre tanto criar (n novo) quanto editar (n existente)
+  // cobre tanto criar (n novo) quanto editar (n existente). Fotos novas vêm
+  // com "dataUrl" (ainda não têm arquivo no Drive) em vez de "fileId" — o
+  // upload delas acontece AQUI, dentro da mesma execução, em vez do
+  // front-end chamar images.saveDataUrl uma vez por foto antes de salvar.
+  // Antes, um relatório com N fotos novas custava N+1 idas e voltas pelo
+  // Apps Script (cada uma pagando o redirecionamento lento por conta
+  // própria); agora custa 1 — a foto ainda é enviada em sequência aqui
+  // dentro (sem ganho real em paralelizar, já que tudo roda na mesma
+  // execução de qualquer forma), só que sem repetir a viagem de rede.
   salvar(projectId, relatorio){
     if(!relatorio.n) throw new Error('Relatório precisa de um número (n) — use proximoNumero() para um novo.');
-    const doc = Object.assign({}, relatorio, {projectId:projectId});
+    const fotosProntas = (relatorio.fotos||[]).map(function(f, i){
+      if(f.dataUrl){
+        const up = LibImages.saveDataUrl(f.dataUrl, projectId, 'rdo-foto', {n:relatorio.n, index:i});
+        return {legenda:f.legenda, fileId:up.fileId};
+      }
+      return f;
+    });
+    const doc = Object.assign({}, relatorio, {projectId:projectId, fotos:fotosProntas});
     LibDriveStore.writeJson(LibFolders.getProjectSubfolder('rdos', projectId), doc.n+'.json', doc);
     return doc;
   },
@@ -83,13 +98,13 @@ function montarPdfDeRelatorio_(relatorio, nomeProjeto){
 
   body.appendParagraph('Atividades realizadas').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   (relatorio.atividades||[]).forEach(function(a){
-    const linha = a.etapa ? (a.texto+' ('+a.etapa+' +'+a.avanco+'%)') : a.texto;
-    body.appendParagraph(linha);
+    appendRichText_(body, a.texto);
+    if(a.etapa) body.appendParagraph('('+a.etapa+' +'+a.avanco+'%)');
   });
 
   if(relatorio.ocorrencias){
     body.appendParagraph('Ocorrências').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    body.appendParagraph(relatorio.ocorrencias);
+    appendRichText_(body, relatorio.ocorrencias);
   }
 
   body.appendParagraph('Fotos').setHeading(DocumentApp.ParagraphHeading.HEADING2);
@@ -106,4 +121,25 @@ function montarPdfDeRelatorio_(relatorio, nomeProjeto){
   pdfBlob.setName('relatorio-'+relatorio.n+'.pdf');
   DriveApp.getFileById(doc.getId()).setTrashed(true);
   return pdfBlob;
+}
+
+// suporte bem limitado de propósito, espelhando exatamente o que
+// renderRichText() em js/helpers.js entende no site: "**negrito**" e uma
+// linha começando com "- " vira item de lista. Nada de HTML arbitrário —
+// só essas duas transformações, então não existe risco de injeção nem
+// necessidade de sanitizar nada aqui.
+function appendRichText_(body, texto){
+  String(texto||'').split('\n').forEach(function(linha){
+    const isItem = /^\s*-\s+/.test(linha);
+    const conteudo = isItem ? linha.replace(/^\s*-\s+/, '') : linha;
+    const partes = conteudo.split(/(\*\*.+?\*\*)/g).filter(function(p){ return p; });
+    const elemento = isItem ? body.appendListItem('') : body.appendParagraph('');
+    if(isItem) elemento.setGlyphType(DocumentApp.GlyphType.BULLET);
+    if(!partes.length) return; // linha em branco — parágrafo vazio já basta
+    partes.forEach(function(parte){
+      const negrito = /^\*\*(.+)\*\*$/.exec(parte);
+      const run = elemento.appendText(negrito ? negrito[1] : parte);
+      if(negrito) run.setBold(true);
+    });
+  });
 }

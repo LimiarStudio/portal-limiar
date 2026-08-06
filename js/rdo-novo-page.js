@@ -44,7 +44,8 @@ function renderRdoNovoForm(p, nextN, editing){
     <div class="row-list" id="eq-list"></div>
 
     <div class="section-label">Atividades realizadas</div>
-    <div class="fg full"><label>Descrição da atividade</label><textarea id="ativ-desc" rows="8" placeholder="Ex.: Concretagem da laje do 2º pavimento"></textarea></div>
+    <div class="fg full"><label>Descrição da atividade</label><textarea id="ativ-desc" rows="8" placeholder="Ex.: Concretagem da laje do 2º pavimento"></textarea>
+      <p class="card-note" style="margin-top:4px">Use <b>**palavra**</b> para negrito e uma linha começando com <b>- </b> para item de lista.</p></div>
     <div class="form-grid" style="margin-top:10px">
       <div class="fg"><label>Vincular ao cronograma (opcional)</label>
         <select id="ativ-etapa"><option value="">— sem vínculo —</option>${etapas.map(e=>`<option>${e.nome}</option>`).join('')}</select></div>
@@ -54,7 +55,8 @@ function renderRdoNovoForm(p, nextN, editing){
     <div class="row-list" id="ativ-list"></div>
 
     <div class="section-label">Ocorrências</div>
-    <div class="fg full"><textarea id="rd-ocorr" rows="8" placeholder="Registre atrasos, imprevistos, visitas, etc.">${editing?escapeHtml(editing.ocorr||''):''}</textarea></div>
+    <div class="fg full"><textarea id="rd-ocorr" rows="8" placeholder="Registre atrasos, imprevistos, visitas, etc.">${editing?escapeHtml(editing.ocorr||''):''}</textarea>
+      <p class="card-note" style="margin-top:4px">Use <b>**palavra**</b> para negrito e uma linha começando com <b>- </b> para item de lista.</p></div>
 
     <div class="section-label">Fotos</div>
     <input type="file" id="foto-input" accept="image/*" multiple style="display:none" onchange="addFoto(this)">
@@ -96,13 +98,18 @@ function drawAtiv(){
 }
 function delAtiv(i){ativRows.splice(i,1);drawAtiv();}
 
-function addFoto(input){
-  Array.from(input.files||[]).forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=e=>{ fotoRows.push({src:e.target.result, cap:file.name}); drawFotos(); };
-    reader.readAsDataURL(file);
-  });
+async function addFoto(input){
+  const files=Array.from(input.files||[]);
   input.value='';
+  for(const file of files){
+    try{
+      const src=await resizeImageFile(file);
+      fotoRows.push({src, cap:file.name});
+      drawFotos();
+    }catch(e){
+      alert('Não foi possível processar a foto "'+file.name+'": '+e.message);
+    }
+  }
 }
 function drawFotos(){
   $('#foto-list').innerHTML=fotoRows.map((f,i)=>{
@@ -155,7 +162,6 @@ async function atualizarAvancoCronograma(pid, ativAntes, ativDepois){
 }
 
 async function saveRDO(pid){
-  if(!ativRows.length){alert('Adicione pelo menos uma atividade antes de salvar.');return;}
   const iniV=$('#rd-ini').value, fimV=$('#rd-fim').value;
   if(!iniV||!fimV){alert('Informe o início e o término da semana.');return;}
   const semana=inputParaData(iniV)+' a '+inputParaData(fimV);
@@ -164,12 +170,10 @@ async function saveRDO(pid){
 
   const btn=document.querySelector('button.btn-primary');
   const textoOriginal=btn.textContent;
-  btn.disabled=true;
+  btn.disabled=true; btn.textContent='Salvando...';
   try{
     const rMem={n:currentN, semana, resp, mo:moRows.slice(), eq:eqRows.slice(), ativ:ativRows.slice(), ocorr, fotos:fotoRows.slice()};
-    await Api.rdos.salvar(pid, rMem, (enviadas,total)=>{
-      if(total) btn.textContent=`Enviando foto ${enviadas}/${total}…`;
-    });
+    await Api.rdos.salvar(pid, rMem);
     try{
       await atualizarAvancoCronograma(pid, editing ? editing.ativ : [], ativRows);
     }catch(e){

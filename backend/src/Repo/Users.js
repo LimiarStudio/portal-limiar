@@ -22,6 +22,26 @@ var RepoUsers = {
   administrador(){
     return despojarSenha_(administradorComSenha_());
   },
+  // só o próprio administrador logado pode chamar (ACOES_ADMIN em Code.js) —
+  // diferente de users.atualizar/redefinirSenha, aqui nome/email/senha podem
+  // vir juntos no mesmo patch, já que é uma conta só e a troca costuma ser
+  // "tudo de uma vez" (ex.: trocar pro e-mail real da empresa com senha nova)
+  atualizarAdmin(patch){
+    const admin = administradorComSenha_();
+    if(!admin) throw new Error('Administrador não configurado.');
+    const seguro = {};
+    if(patch.nome!==undefined) seguro.nome = patch.nome;
+    if(patch.email!==undefined) seguro.email = patch.email;
+    if(patch.senha!==undefined){
+      validarSenha_(patch.senha);
+      const salt = gerarSalt_();
+      seguro.senhaHash = hashSenha_(patch.senha, salt);
+      seguro.senhaSalt = salt;
+    }
+    const atualizado = Object.assign({}, admin, seguro);
+    LibDriveStore.writeJson(LibFolders.getRootFolder(), 'admin.json', atualizado);
+    return despojarSenha_(atualizado);
+  },
   criar(dados){
     const nome = dados.nome, email = dados.email, senha = dados.senha;
     if(!nome || !email) throw new Error('Informe nome e e-mail.');
@@ -55,7 +75,7 @@ function despojarSenha_(u){
   return copia;
 }
 function validarSenha_(senha){
-  if(!senha || String(senha).length<6) throw new Error('A senha precisa ter pelo menos 6 caracteres.');
+  if(!senha || String(senha).length<4) throw new Error('A senha precisa ter pelo menos 4 caracteres.');
 }
 // uso interno (Repo/Auth.js) — inclui o hash/salt, nunca deve ser exposto
 // pelo despacho da API (por isso vivem soltos aqui, não como método de

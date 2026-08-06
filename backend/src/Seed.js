@@ -41,6 +41,33 @@ var Seed = {
     LibFolders.clearCache();
     return {ok:true};
   },
+  // projects.remover (chamado só via API direta, nunca pela interface — a
+  // única forma de remover um projeto pela interface é arquivar, que já
+  // limpa tudo) é de propósito um "primitivo de baixo nível" que NÃO apaga
+  // cronograma/financeiro/rdos/etc de um projeto removido assim — sobra
+  // órfão. Essa função varre as coleções por-projeto e joga na lixeira
+  // qualquer coisa cujo id não corresponda a nenhum projeto que ainda existe.
+  limparOrfaos(){
+    const idsReais = {};
+    RepoProjects.listar().forEach(function(p){ idsReais[String(p.id)] = true; });
+    const pastas = ['cronogramas','financeiro','rdos','rdoPdfs','projectPermissions','projectCatalog','images'];
+    const removidos = [];
+    pastas.forEach(function(nome){
+      const pasta = LibFolders.getDataSubfolder(nome);
+      const arquivos = pasta.getFiles();
+      while(arquivos.hasNext()){
+        const f = arquivos.next();
+        const id = f.getName().replace(/\.json$/,'');
+        if(!idsReais[id]){ f.setTrashed(true); removidos.push(nome+'/'+f.getName()); }
+      }
+      const subpastas = pasta.getFolders();
+      while(subpastas.hasNext()){
+        const sub = subpastas.next();
+        if(!idsReais[sub.getName()]){ sub.setTrashed(true); removidos.push(nome+'/'+sub.getName()+'/'); }
+      }
+    });
+    return {removidos: removidos};
+  },
 };
 
 // define (ou troca) a senha do administrador — de propósito NÃO é método de

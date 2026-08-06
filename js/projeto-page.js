@@ -37,7 +37,7 @@ function renderProjetoTabs(){
     c.innerHTML+=renderRDO(p);
   }
   if(current.tab==='financeiro'){ if(ROLE==='gestor') ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="openCategoria(${PROJETO_ID})">+ Nova categoria</button>`; c.innerHTML+=renderFin(p);}
-  if(current.tab==='cronograma'){ if(ROLE==='gestor') ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="openEtapa(${PROJETO_ID})">+ Nova etapa</button>`; c.innerHTML+=renderCrono(p);}
+  if(current.tab==='cronograma'){ if(ROLE==='gestor') ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="${p.tipo==='relatorios'?'openEtapaSimples':'openEtapa'}(${PROJETO_ID})">+ Nova etapa</button>`; c.innerHTML+=renderCrono(p);}
 }
 
 async function initProjetoPage(){

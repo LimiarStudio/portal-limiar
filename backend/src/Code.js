@@ -17,14 +17,14 @@
    deveria nunca viajar numa query string de GET (fica em histórico/logs). */
 var ACOES_PUBLICAS = ['auth.login']; // não exigem login nenhum
 var ACOES_ADMIN = [
-  'users.criar','users.atualizar','users.remover','users.redefinirSenha',
+  'users.criar','users.atualizar','users.remover','users.redefinirSenha','users.atualizarAdmin',
   'permissions.definir','permissions.remover',
   'archive.arquivarProjeto',
   'projects.criar','projects.atualizar','projects.remover',
   'catalog.adicionarEtapa','catalog.removerEtapa','catalog.adicionarCategoria','catalog.removerCategoria','catalog.definirEtapasDaCategoria',
   'cronograma.adicionar','cronograma.atualizar','cronograma.remover','cronograma.salvar',
   'financeiro.adicionarCategoria','financeiro.atualizarOrcamento','financeiro.lancarGasto','financeiro.removerLancamento','financeiro.removerCategoria','financeiro.salvarTudo',
-  'seed.rodar','seed.resetar',
+  'seed.rodar','seed.resetar','seed.limparOrfaos',
 ];
 // ações que só LEEM (nenhuma faz read-modify-write de um arquivo compartilhado
 // no Drive, nem sequer escreve nada — auth.login/logout só tocam a

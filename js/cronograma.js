@@ -79,6 +79,67 @@ async function saveEtapaEdit(pid, id){
     btn.disabled=false;
   }
 }
+/* --- versão simplificada, pra projetos "Apenas Relatórios": só nome da
+   etapa e progresso, sem datas/prazo (ver renderCrono em js/render.js) ---
+   ini/fim são preenchidos com a data de hoje e dur fica fixo em 1 só pra
+   satisfazer o schema do backend (que espera esses campos) — nada disso
+   aparece nessa versão da tela, e dur=1 faz a média ponderada de
+   progressoGeral() virar uma média simples entre as etapas, que é o
+   esperado quando não existe prazo pra ponderar */
+async function openEtapaSimples(pid){
+  await garantirCatalogCache(pid);
+  const atuais=ensureCronograma(pid).map(e=>e.nome);
+  const disponiveis=etapasPadrao(pid).filter(e=>!atuais.includes(e));
+  if(!disponiveis.length){
+    modal('Nova etapa',`<div class="empty">Todas as etapas padrão já foram adicionadas a este projeto.</div>`,
+      `<button class="btn" onclick="closeModal()">Fechar</button>`);
+    return;
+  }
+  modal('Nova etapa',`
+    <div class="fg full"><label>Etapa</label><select id="et-nome">${disponiveis.map(e=>`<option>${e}</option>`).join('')}</select></div>
+  `,`<button class="btn" onclick="closeModal()">Cancelar</button>
+     <button class="btn-primary" style="width:auto" onclick="saveEtapaSimples(${pid})">Salvar etapa</button>`);
+}
+async function saveEtapaSimples(pid){
+  const nome=$('#et-nome').value;
+  const btn=document.querySelector('#modalRoot .btn-primary');
+  btn.disabled=true;
+  const hoje=new Date();
+  const dd=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  try{
+    await Api.cronograma.adicionar(pid, {nome, ini:dd, fim:dd, av:0, dur:1});
+    cronogramas[pid]=await Api.cronograma.listar(pid);
+    await recalcularAvancoProjeto(pid);
+    closeModal();renderProjetoTabs();
+  }catch(e){
+    alert('Não foi possível adicionar a etapa: '+e.message);
+    btn.disabled=false;
+  }
+}
+function editEtapaSimples(pid, id){
+  const item=ensureCronograma(pid).find(x=>x.id===id);
+  if(!item) return;
+  modal('Editar progresso — '+item.nome,`
+    <div class="fg full"><label>Progresso (%)</label><input id="et-av-simples" type="number" min="0" max="100" value="${item.av}"></div>
+  `,`<button class="btn" onclick="closeModal()">Cancelar</button>
+     <button class="btn-primary" style="width:auto" onclick="saveEtapaSimplesEdit(${pid},'${id}')">Salvar</button>`);
+}
+async function saveEtapaSimplesEdit(pid, id){
+  const av=+$('#et-av-simples').value;
+  if(isNaN(av)||av<0||av>100){alert('O progresso deve estar entre 0 e 100%.');return;}
+  const btn=document.querySelector('#modalRoot .btn-primary');
+  btn.disabled=true;
+  try{
+    await Api.cronograma.atualizar(pid, id, {av});
+    cronogramas[pid]=await Api.cronograma.listar(pid);
+    await recalcularAvancoProjeto(pid);
+    closeModal();renderProjetoTabs();
+  }catch(e){
+    alert('Não foi possível salvar: '+e.message);
+    btn.disabled=false;
+  }
+}
+
 async function removeCronogramaEtapa(pid, id, nome){
   if(!confirm(`Remover a etapa "${nome}" do cronograma deste projeto? As categorias e gastos já lançados nela não são apagados, mas deixam de aparecer até que a etapa seja adicionada novamente.`)) return;
   try{

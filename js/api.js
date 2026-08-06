@@ -192,8 +192,12 @@ Api.images = {
    mo/eq: tuplas [nome,qtd] (memória) <-> objetos {funcao|equipamento,qtd} (db)
    ativ/atividades: {t,etapa,av} <-> {texto,etapa,avanco}
    semana: "DD/MM/AAAA a DD/MM/AAAA" única <-> semanaInicio+semanaFim (ISO, separadas)
-   fotos: {cap,src|emoji} <-> {legenda,fileId|emoji} — upload de foto nova
-   acontece à parte (Api.images.saveRdoFoto), antes de salvar() */
+   fotos: {cap,src|emoji} <-> {legenda,fileId|emoji|dataUrl} — foto nova (ainda
+   sem fileId) viaja com "dataUrl" DENTRO do mesmo rdos.salvar; o upload em si
+   acontece no backend (Repo/Rdos.js#salvar), não numa chamada separada antes
+   — evita N+1 idas e voltas pelo Apps Script pra um relatório com N fotos
+   novas, que era o principal motivo de relatórios com várias fotos serem
+   lentos/instáveis de salvar. */
 const moDbParaMemoria = mo => (mo||[]).map(x=>[x.funcao, x.qtd]);
 const moMemoriaParaDb = mo => (mo||[]).map(([funcao,qtd])=>({funcao,qtd}));
 const eqDbParaMemoria = eq => (eq||[]).map(x=>[x.equipamento, x.qtd]);
@@ -216,28 +220,10 @@ function fotoDbParaMemoria(f){
 // só fotos recém-anexadas (ainda como data URL, nunca enviadas) precisam de upload —
 // as que já têm fileId (edição de um relatório existente) são só repassadas
 const fotoPrecisaUpload = f => !!(f.src && f.src.indexOf('data:')===0);
-// upload sequencial (não Promise.all) de propósito: o backend serializa toda
-// requisição num único lock global (ver Code.js), então enviar em paralelo
-// não ganha nada em velocidade e só dificulta reportar progresso claro ao
-// usuário — onProgress(enviadas, totalParaEnviar), opcional
-async function prepararFotosParaSalvar(pid, n, fotosMem, onProgress){
-  const out = [];
-  const totalParaEnviar = fotosMem.filter(fotoPrecisaUpload).length;
-  let enviadas = 0;
-  for(let i=0;i<fotosMem.length;i++){
-    const f = fotosMem[i];
-    if(fotoPrecisaUpload(f)){
-      const up = await Api.images.saveRdoFoto(pid, n, i, f.src);
-      out.push({legenda:f.cap, fileId:up.fileId});
-      enviadas++;
-      if(onProgress) onProgress(enviadas, totalParaEnviar);
-    }else if(f.fileId){
-      out.push({legenda:f.cap, fileId:f.fileId});
-    }else{
-      out.push({legenda:f.cap, emoji:f.emoji});
-    }
-  }
-  return out;
+function fotoMemoriaParaDbPendente(f){
+  if(fotoPrecisaUpload(f)) return {legenda:f.cap, dataUrl:f.src};
+  if(f.fileId) return {legenda:f.cap, fileId:f.fileId};
+  return {legenda:f.cap, emoji:f.emoji};
 }
 function rdoDbParaMemoria(r){
   return {
@@ -260,8 +246,8 @@ Api.rdos = {
   listar: async pid => (await apiCall('rdos','listar',[pid])).map(rdoDbParaMemoria),
   buscar: async (pid, n) => rdoDbParaMemoria(await apiCall('rdos','buscar',[pid, n])),
   proximoNumero: pid => apiCall('rdos','proximoNumero',[pid]),
-  salvar: async (pid, rMem, onProgress) => {
-    const fotos = await prepararFotosParaSalvar(pid, rMem.n, rMem.fotos||[], onProgress);
+  salvar: async (pid, rMem) => {
+    const fotos = (rMem.fotos||[]).map(fotoMemoriaParaDbPendente);
     return rdoDbParaMemoria(await apiCall('rdos','salvar',[pid, rdoMemoriaParaDb(rMem, fotos)]));
   },
   remover: (pid, n) => apiCall('rdos','remover',[pid, n]),

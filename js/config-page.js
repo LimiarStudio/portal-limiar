@@ -98,11 +98,17 @@ async function saveCategoriaEtapas(nome){
 function renderConfigContent(){
   const etapas=etapasPadrao(PROJETO_ID);
   const categoriaList=categoriasPadrao(PROJETO_ID);
+  // projetos "Apenas Relatórios" não têm módulo Financeiro, então categorias
+  // (que só existem pra agrupar gastos) não fazem sentido aqui — mas etapas
+  // continuam relevantes, já que alimentam o cronograma simplificado desse
+  // tipo de projeto (ver renderCrono em js/render.js)
+  const p=projetos.find(x=>x.id===PROJETO_ID);
+  const completo = !p || p.tipo!=='relatorios';
   $('#content').innerHTML=`
-  <div class="grid-2">
+  <div class="${completo?'grid-2':''}">
     <div class="card">
       <h3>Etapas de obra</h3>
-      <p class="card-note">Lista de etapas do cronograma deste projeto. Cada etapa também é o agrupador fixo usado no Financeiro. Adicione ou remova etapas — vale só para este projeto.</p>
+      <p class="card-note">Lista de etapas do cronograma deste projeto.${completo?' Cada etapa também é o agrupador fixo usado no Financeiro.':''} Adicione ou remova etapas — vale só para este projeto.</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
         ${etapas.map(e=>`<span class="chip" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px">${e}<button onclick="removeEtapa('${e.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;padding:0">×</button></span>`).join('')}
       </div>
@@ -111,7 +117,7 @@ function renderConfigContent(){
         <button class="mini-btn" onclick="addEtapa()">+ Adicionar etapa</button>
       </div>
     </div>
-    <div class="card">
+    ${completo?`<div class="card">
       <h3>Nova categoria</h3>
       <p class="card-note">Escolha o nome e em quais etapas ela deve aparecer como opção no Financeiro deste projeto.</p>
       <div class="fg full" style="margin-bottom:12px"><label>Nome da categoria</label><input id="cfg-cat-nome" placeholder="Ex.: Gesso acartonado"></div>
@@ -122,9 +128,9 @@ function renderConfigContent(){
         </label>`).join('')}
       </div>
       <button class="btn-primary" style="width:auto" onclick="addCategoria()">+ Adicionar categoria</button>
-    </div>
+    </div>`:''}
   </div>
-  <div class="card">
+  ${completo?`<div class="card">
     <h3>Categorias e suas relações</h3>
     <p class="card-note">${categoriaList.length} categorias cadastradas neste projeto — cada uma aparece como opção apenas nas etapas relacionadas a ela.</p>
     <table>
@@ -143,7 +149,7 @@ function renderConfigContent(){
       }).join('')}
       </tbody>
     </table>
-  </div>`;
+  </div>`:''}`;
 }
 
 async function initConfigPage(){
@@ -159,6 +165,8 @@ async function initConfigPage(){
   }catch(e){
     window.location.href=withRole('projetos.html'); return;
   }
+  const idx=projetos.findIndex(x=>x.id===PROJETO_ID);
+  if(idx===-1) projetos.push(p); else projetos[idx]=p;
   buildNavConfig(p);
   $('#crumb').textContent='Projetos · '+p.nome;
   $('#pageTitle').textContent='Configurações — '+p.nome;

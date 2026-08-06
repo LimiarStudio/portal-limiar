@@ -6,13 +6,16 @@
 let PROJETO_ID;
 let novaImagem; // data URL escolhida nesta sessão de edição e ainda não salva; undefined = nenhuma alteração
 
-function onCapaChange(input){
+async function onCapaChange(input){
   const file=(input.files||[])[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{ novaImagem=e.target.result; drawCapaPreview(); };
-  reader.readAsDataURL(file);
   input.value='';
+  if(!file) return;
+  try{
+    novaImagem=await resizeImageFile(file);
+    drawCapaPreview();
+  }catch(e){
+    alert('Não foi possível processar a imagem: '+e.message);
+  }
 }
 function removerCapa(){ novaImagem=''; drawCapaPreview(); }
 function drawCapaPreview(){
@@ -27,7 +30,7 @@ function renderEditarProjetoForm(p){
     <h3>Imagem de capa</h3>
     <p class="card-note">Aparece no card do projeto em Meus Projetos, logo após o login. Sem imagem enviada, mostra o ícone padrão.</p>
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-      <div class="proj-thumb" id="capa-preview" style="width:180px;height:120px;border-radius:10px;flex:none;overflow:hidden">${p.imagem?`<img src="${p.imagem}" alt="Capa do projeto">`:p.icon}</div>
+      <div class="proj-thumb" id="capa-preview" style="width:260px;height:180px;border-radius:10px;flex:none;overflow:hidden">${p.imagem?`<img src="${p.imagem}" alt="Capa do projeto">`:p.icon}</div>
       <div style="display:flex;gap:8px">
         <input type="file" id="capa-input" accept="image/*" style="display:none" onchange="onCapaChange(this)">
         <button class="mini-btn" onclick="$('#capa-input').click()">Escolher imagem</button>

@@ -5,13 +5,16 @@
 let novaImagem; // data URL escolhida; undefined = nenhuma imagem enviada ainda
 let tipoSelecionado = 'completo';
 
-function onCapaChange(input){
+async function onCapaChange(input){
   const file=(input.files||[])[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{ novaImagem=e.target.result; drawCapaPreview(); };
-  reader.readAsDataURL(file);
   input.value='';
+  if(!file) return;
+  try{
+    novaImagem=await resizeImageFile(file);
+    drawCapaPreview();
+  }catch(e){
+    alert('Não foi possível processar a imagem: '+e.message);
+  }
 }
 function removerCapa(){ novaImagem=undefined; drawCapaPreview(); }
 function drawCapaPreview(){
@@ -44,7 +47,7 @@ function renderNovoProjetoForm(){
     <h3>Imagem de capa</h3>
     <p class="card-note">Aparece no card do projeto em Meus Projetos, logo após o login. Sem imagem enviada, mostra um ícone padrão.</p>
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-      <div class="proj-thumb" id="capa-preview" style="width:180px;height:120px;border-radius:10px;flex:none;overflow:hidden">🏗️</div>
+      <div class="proj-thumb" id="capa-preview" style="width:260px;height:180px;border-radius:10px;flex:none;overflow:hidden">🏗️</div>
       <div style="display:flex;gap:8px">
         <input type="file" id="capa-input" accept="image/*" style="display:none" onchange="onCapaChange(this)">
         <button class="mini-btn" onclick="$('#capa-input').click()">Escolher imagem</button>

@@ -9,6 +9,56 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;
 // ou no formato novo, com imagem real anexada de verdade ({cap, src}) — normaliza os dois
 const normalizeFoto = f => Array.isArray(f) ? {cap:f[0], emoji:f[1]} : f;
 const fotoTileBody = f => f.src ? `<img src="${f.src}" alt="${escapeHtml(f.cap||'')}">` : (f.emoji||'📷');
+
+// redimensiona uma foto no navegador antes de anexar — uma foto de celular
+// sem redimensionar (frequentemente 3-8MB) deixava o envio lento e às vezes
+// estourava o tempo do Apps Script; nada aqui (grade de miniatura, lightbox
+// em tela cheia, capa de projeto) precisa da resolução original de qualquer
+// forma. Reduz pro lado maior caber em maxDim e reexporta como JPEG.
+function resizeImageFile(file, maxDim=1920, quality=0.8){
+  return new Promise((resolve, reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Não foi possível ler o arquivo.'));
+    reader.onload=e=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('Não foi possível processar a imagem.'));
+      img.onload=()=>{
+        let w=img.width, h=img.height;
+        if(w>maxDim||h>maxDim){
+          if(w>h){ h=Math.round(h*maxDim/w); w=maxDim; }
+          else{ w=Math.round(w*maxDim/h); h=maxDim; }
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// suporte bem limitado e seguro pro texto de atividades/ocorrências dos
+// relatórios: só "**negrito**" e uma linha começando com "- " (item de
+// lista) — nada de HTML arbitrário, tudo passa por escapeHtml antes das
+// poucas transformações. O PDF (backend/src/Repo/Rdos.js#appendRichText_)
+// entende exatamente a mesma sintaxe, pra web e PDF baterem.
+function renderRichText(raw){
+  if(!raw) return '';
+  const linhas = String(raw).split('\n');
+  let html = '', dentroLista = false;
+  linhas.forEach(linha=>{
+    const isItem = /^\s*-\s+/.test(linha);
+    if(isItem && !dentroLista){ html += '<ul>'; dentroLista = true; }
+    if(!isItem && dentroLista){ html += '</ul>'; dentroLista = false; }
+    const texto = escapeHtml(isItem ? linha.replace(/^\s*-\s+/,'') : linha)
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    html += isItem ? `<li>${texto}</li>` : `<p>${texto||'&nbsp;'}</p>`;
+  });
+  if(dentroLista) html += '</ul>';
+  return html;
+}
 let current = {tab:'visao'};
 
 // conversões de data usadas em qualquer <input type="date"> do site (cronograma,
@@ -22,11 +72,13 @@ const inputParaData = s => { const [a,m,d] = s.split('-'); return `${d}/${m}/${a
 const projetoHref = (pid, tab) => 'projeto.html?projeto='+pid+(tab?'&tab='+tab:'');
 
 // catálogo completo de módulos do projeto; "Apenas Relatórios" (ver novo-projeto.html)
-// só habilita o de Relatórios Semanais — os demais dependem de Financeiro/Cronograma,
-// que esse tipo de projeto não usa
+// habilita Relatórios Semanais + Visão Geral + um Cronograma simplificado (só
+// nome da etapa e progresso, sem datas — ver renderCrono/openEtapaSimples em
+// js/cronograma.js) — só o Financeiro fica de fora, já que não há orçamento
+// a acompanhar nesse tipo de projeto
 const MODULOS_PROJETO = [['visao','Visão Geral','gauge'],['rdo','Relatórios Semanais','clipboard'],
   ['financeiro','Financeiro','wallet'],['cronograma','Cronograma','calendar']];
-const modulosDoProjeto = p => p.tipo==='relatorios' ? MODULOS_PROJETO.filter(([k])=>k==='rdo') : MODULOS_PROJETO;
+const modulosDoProjeto = p => p.tipo==='relatorios' ? MODULOS_PROJETO.filter(([k])=>k==='rdo'||k==='visao'||k==='cronograma') : MODULOS_PROJETO;
 
 // permissões por usuário, por projeto — vêm do backend (Api.permissions.doUsuario),
 // buscadas uma vez por carregamento de página (carregarPermissoes, chamada no

@@ -46,12 +46,12 @@ function renderRdoVer(p, r){
 
     <div class="section-label">Atividades realizadas</div>
     ${r.ativ.length?r.ativ.map(a=>`<div style="padding:14px 16px;background:var(--bg2);border-radius:10px;margin-bottom:10px">
-      <div style="white-space:pre-wrap;line-height:1.6">${escapeHtml(a.t)}</div>
+      <div class="richtext">${renderRichText(a.t)}</div>
       <div style="margin-top:10px">${a.etapa?`<span class="chip cat-eg">🔗 ${a.etapa} +${a.av}%</span>`:`<span class="chip">sem vínculo</span>`}</div>
     </div>`).join(''):`<div class="mut" style="font-size:12px">Nenhuma atividade registrada.</div>`}
 
     <div class="section-label">Ocorrências</div>
-    <div style="padding:14px 16px;background:var(--bg2);border-radius:10px;white-space:pre-wrap;line-height:1.6">${r.ocorr?escapeHtml(r.ocorr):'<span class="mut">Nenhuma ocorrência registrada.</span>'}</div>
+    <div style="padding:14px 16px;background:var(--bg2);border-radius:10px" class="richtext">${r.ocorr?renderRichText(r.ocorr):'<span class="mut">Nenhuma ocorrência registrada.</span>'}</div>
 
     <div class="section-label">Fotos</div>
     ${fotos.length?`<div class="photo-grid">${fotos.map((f,i)=>`<div class="photo"><div class="ph"${f.src?` onclick="abrirFotoLightbox(${i})" style="cursor:zoom-in"`:''}>${fotoTileBody(f)}</div><div class="cap">${escapeHtml(f.cap)}</div></div>`).join('')}</div>`:`<div class="mut" style="font-size:12px">Nenhuma foto anexada.</div>`}

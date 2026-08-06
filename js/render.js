@@ -1,6 +1,9 @@
 /* =================== RENDER (detalhe do projeto) =================== */
 function renderVisao(p){
-  const finP=finTotalPrevisto(p.id), finR=finTotalRealizado(p.id);
+  // projetos "Apenas Relatórios" não têm módulo Financeiro — sem orçado/gasto
+  // pra mostrar, então essa parte (KPI de Gasto + os dois gráficos) some
+  const completo = p.tipo!=='relatorios';
+  const finP=completo?finTotalPrevisto(p.id):0, finR=completo?finTotalRealizado(p.id):0;
   const ult=(rdos[p.id]||[])[0];
   return `
   <div class="grid-2">
@@ -25,14 +28,10 @@ function renderVisao(p){
         :`<div class="empty">Nenhum relatório lançado ainda.</div>`}
     </div>
   </div>
-  <div class="grid-2">
-    ${kpi('Progresso geral',p.avanco+'%','progress-mini',p.avanco)}
-    ${kpi('Gasto', fmtK(finR), null, null, `de ${fmtK(finP)} orçado`)}
-  </div>
-  <div class="grid-2">
-    ${renderDonutGastoEtapa(p.id)}
-    ${renderGastoMensal(p.id)}
-  </div>`;
+  ${completo
+    ? `<div class="grid-2">${kpi('Progresso geral',p.avanco+'%','progress-mini',p.avanco)}${kpi('Gasto', fmtK(finR), null, null, `de ${fmtK(finP)} orçado`)}</div>
+       <div class="grid-2">${renderDonutGastoEtapa(p.id)}${renderGastoMensal(p.id)}</div>`
+    : kpi('Progresso geral',p.avanco+'%','progress-mini',p.avanco)}`;
 }
 
 /* paleta cíclica para os gráficos — cores repetem se houver mais etapas/meses do que cores */
@@ -176,6 +175,23 @@ function renderFin(p){
 function renderCrono(p){
   const t=ensureCronograma(p.id);
   const gest=ROLE==='gestor';
+  // projetos "Apenas Relatórios" usam um cronograma sem datas/prazo — só
+  // nome da etapa e a barra de progresso (ver openEtapaSimples/editEtapaSimples
+  // em js/cronograma.js), já que esse tipo de projeto não acompanha prazos
+  if(p.tipo==='relatorios'){
+    return `<div class="card"><h3>Avanço de etapas</h3>
+      <p class="card-note">O avanço de cada etapa é atualizado automaticamente pelos relatórios semanais vinculados.</p>
+      ${t.length?t.map(x=>`<div class="r" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)">
+        <b style="flex:0 0 160px">${x.nome}</b>
+        <div class="gbar" style="flex:1"><i style="width:${x.av}%"></i></div>
+        <span class="fin-pct" style="flex:0 0 44px;text-align:right">${x.av}%</span>
+        ${gest?`<div style="display:flex;gap:6px;flex:0 0 auto">
+          <button class="mini-btn" onclick="editEtapaSimples(${p.id},'${x.id}')">Editar</button>
+          <button class="mini-btn mini-btn-danger" onclick="removeCronogramaEtapa(${p.id},'${x.id}','${x.nome.replace(/'/g,"\\'")}')">Remover</button>
+        </div>`:''}
+      </div>`).join(''):`<div class="empty">Nenhuma etapa adicionada ainda.${gest?' Clique em <b>+ Nova etapa</b>.':''}</div>`}
+    </div>`;
+  }
   return `<div class="card"><h3>Cronograma detalhado</h3>
     <p class="card-note">O avanço de cada etapa é atualizado automaticamente pelos relatórios semanais vinculados</p>
     ${t.length?`<div class="gantt"><table>
