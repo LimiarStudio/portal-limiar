@@ -25,9 +25,29 @@ var RepoProjects = {
     });
   },
   atualizar(id, patch){ return LibCollection.update('projects', id, patch); },
-  // primitivo de baixo nível — sem dados associados (cronograma/financeiro/rdos),
-  // útil só pra apagar um projeto criado por engano. O único jeito sancionado
-  // de encerrar um projeto COM dados é Repo/Archive.js#arquivarProjeto, que
-  // garante que os relatórios virem PDF antes de qualquer coisa ser perdida.
-  remover(id){ LibCollection.remove('projects', id); },
+  // apaga o projeto E os dados associados (cronograma/financeiro/rdos/etc) —
+  // sem PDF nenhum, ao contrário de Repo/Archive.js#arquivarProjeto, que é o
+  // jeito sancionado de encerrar um projeto com histórico que vale preservar.
+  // Precisa mesmo limpar tudo aqui: como o próximo projeto criado reaproveita
+  // o menor id numérico livre (LibCollection#nextNumericId), um id removido
+  // sem essa limpeza fica "armadilhado" — o próximo projeto que nascer com
+  // esse mesmo id herda relatórios/cronograma de outro projeto que nunca foi
+  // dele. Foi exatamente esse bug que apareceu como "criei um projeto e já
+  // tinha um relatório" — chamadas diretas à API (nunca a interface, que só
+  // oferece arquivar) que usavam a versão antiga desta função deixaram esse
+  // lixo pra trás.
+  remover(id){ LibCollection.remove('projects', id); apagarDadosDoProjeto_(id); },
 };
+
+function apagarDadosDoProjeto_(projectId){
+  const id = String(projectId);
+  ['cronogramas','financeiro','projectPermissions','projectCatalog'].forEach(function(nome){
+    LibDriveStore.deleteFile(LibFolders.getDataSubfolder(nome), id+'.json');
+  });
+  ['rdos','rdoPdfs','images'].forEach(function(nome){
+    const pai = LibFolders.getDataSubfolder(nome);
+    const subs = pai.getFoldersByName(id);
+    while(subs.hasNext()) subs.next().setTrashed(true);
+    LibFolders.invalidate('folder:proj:'+nome+':'+id);
+  });
+}
