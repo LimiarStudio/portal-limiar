@@ -210,6 +210,14 @@ a.rdo-item{text-decoration:none;color:inherit}
 .modal-body{padding:22px;max-height:70vh;overflow:auto}
 .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line)}
 .x{background:none;border:none;color:var(--mut);font-size:22px;line-height:1}
+
+/* ---------- LIGHTBOX (foto do relatório em resolução original) ---------- */
+.lightbox-overlay{align-items:center;cursor:zoom-out}
+.lightbox-inner{position:relative;max-width:92vw;cursor:default}
+.lightbox-img{display:block;max-width:92vw;max-height:82vh;object-fit:contain;border-radius:10px;box-shadow:var(--shadow)}
+.lightbox-close{position:absolute;top:-14px;right:-14px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:18px;line-height:1;cursor:pointer}
+.lightbox-close:hover{background:rgba(0,0,0,.85)}
+.lightbox-cap{margin-top:10px;text-align:center;color:#fff;font-size:14px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
 .form-grid.three{grid-template-columns:1fr 1fr 1fr}
 .fg label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}

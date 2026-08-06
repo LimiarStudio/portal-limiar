@@ -20,8 +20,14 @@ async function baixarPdf(pid, n){
   }
 }
 
+// preenchido por renderRdoVer, lido por abrirFotoLightbox(i) — evita ter que
+// escapar src/legenda dentro de um atributo onclick, só passa o índice
+let FOTOS_RDO_ATUAL = [];
+
 function renderRdoVer(p, r){
   const voltar=withRole(projetoHref(p.id,'rdo'));
+  const fotos = r.fotos.map(normalizeFoto);
+  FOTOS_RDO_ATUAL = fotos;
   return `
   <a class="page-back" href="${voltar}">← Voltar para Relatórios</a>
   <div class="card">
@@ -48,8 +54,32 @@ function renderRdoVer(p, r){
     <div style="padding:14px 16px;background:var(--bg2);border-radius:10px;white-space:pre-wrap;line-height:1.6">${r.ocorr?escapeHtml(r.ocorr):'<span class="mut">Nenhuma ocorrência registrada.</span>'}</div>
 
     <div class="section-label">Fotos</div>
-    ${r.fotos.length?`<div class="photo-grid">${r.fotos.map(normalizeFoto).map(f=>`<div class="photo"><div class="ph">${fotoTileBody(f)}</div><div class="cap">${escapeHtml(f.cap)}</div></div>`).join('')}</div>`:`<div class="mut" style="font-size:12px">Nenhuma foto anexada.</div>`}
+    ${fotos.length?`<div class="photo-grid">${fotos.map((f,i)=>`<div class="photo"><div class="ph"${f.src?` onclick="abrirFotoLightbox(${i})" style="cursor:zoom-in"`:''}>${fotoTileBody(f)}</div><div class="cap">${escapeHtml(f.cap)}</div></div>`).join('')}</div>`:`<div class="mut" style="font-size:12px">Nenhuma foto anexada.</div>`}
   </div>`;
+}
+
+// só fotos reais (com src) abrem — as antigas só-emoji não têm o que ampliar
+function abrirFotoLightbox(i){
+  const f = FOTOS_RDO_ATUAL[i];
+  if(!f || !f.src) return;
+  $('#modalRoot').innerHTML = `<div class="overlay lightbox-overlay" onclick="if(event.target===this)fecharLightbox_()">
+    <div class="lightbox-inner">
+      <button class="lightbox-close" onclick="fecharLightbox_()">×</button>
+      <img class="lightbox-img" src="${f.src}" alt="${escapeHtml(f.cap||'')}">
+      ${f.cap?`<div class="lightbox-cap">${escapeHtml(f.cap)}</div>`:''}
+    </div>
+  </div>`;
+  document.addEventListener('keydown', fecharLightboxNoEsc_);
+}
+// todo caminho de fechar (x, clique fora, Esc) passa por aqui — só o Esc
+// teria caminho próprio pra remover o listener, então centraliza pra não
+// vazar um listener de keydown a cada foto aberta
+function fecharLightbox_(){
+  closeModal();
+  document.removeEventListener('keydown', fecharLightboxNoEsc_);
+}
+function fecharLightboxNoEsc_(e){
+  if(e.key==='Escape') fecharLightbox_();
 }
 
 async function initRdoVerPage(){
