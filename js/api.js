@@ -654,14 +654,18 @@ Api.rdos = {
    "o projeto ainda existe" (o doc em si só some no fim), então também é
    seguro tentar de novo. A única sequência realmente ruim — PDFs faltando
    mas registros já apagados — é estruturalmente impossível por essa ordem.
-   Imagens/PDFs no Drive nunca são tocados: ficam nos mesmos caminhos pra
-   sempre, só o Firestore (o que hoje decide "ativo ou não") é limpo. */
+
+   Imagens/PDFs no Drive nunca são apagados — mas, diferente da primeira
+   versão deste fluxo, agora são MOVIDOS pra dentro de archive/<id> - <nome>/
+   (archive.mover no backend enxuto) antes do Firestore ser limpo, pra não
+   ficarem misturados com os projetos ativos dentro de images/ e rdoPdfs/
+   sem nenhuma pista de que aquele projeto já foi encerrado. */
 Api.archive = {
-  // onProgress(feito, total) opcional — a geração de PDF é sequencial (o
-  // backend enxuto processa um relatório por vez) e cada um paga a lentidão
-  // de sempre do Apps Script, então um projeto com vários relatórios pode
-  // demorar; sem isso, o botão fica parado sem indicar que algo está
-  // acontecendo de verdade
+  // onProgress(etapa, feito, total) opcional — a geração de PDF é sequencial
+  // (o backend enxuto processa um relatório por vez) e cada um paga a
+  // lentidão de sempre do Apps Script, então um projeto com vários
+  // relatórios pode demorar; sem isso, o botão fica parado sem indicar que
+  // algo está acontecendo de verdade
   arquivarProjeto: async (pid, confirm, onProgress) => {
     if(confirm !== 'ARQUIVAR PROJETO') throw new Error('Confirmação inválida.');
 
@@ -671,6 +675,11 @@ Api.archive = {
       await Api.rdos.gerarPdf(pid, numeros[i]);
       if(onProgress) onProgress('pdf', i+1, numeros.length);
     }
+
+    if(onProgress) onProgress('movendo');
+    const nomeProjeto = await nomeDoProjeto_(pid);
+    await apiCall('archive', 'mover', [pid, nomeProjeto]);
+
     if(onProgress) onProgress('apagando');
 
     const batch = firestoreDb().batch();

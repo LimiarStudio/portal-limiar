@@ -87,7 +87,9 @@ async function confirmarArquivar(pid){
   btn.textContent='Gerando PDFs...';
   try{
     await Api.archive.arquivarProjeto(pid, 'ARQUIVAR PROJETO', (etapa,feito,total)=>{
-      btn.textContent = etapa==='pdf' ? `Gerando PDF ${feito}/${total}...` : 'Removendo dados...';
+      if(etapa==='pdf') btn.textContent = `Gerando PDF ${feito}/${total}...`;
+      else if(etapa==='movendo') btn.textContent = 'Organizando arquivos...';
+      else btn.textContent = 'Removendo dados...';
     });
     closeModal();
     alert('Projeto arquivado. Os relatórios foram convertidos em PDF e salvos no Google Drive, e a entrada foi removida do sistema.');
