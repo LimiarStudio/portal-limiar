@@ -83,7 +83,7 @@ function fecharLightboxNoEsc_(e){
 }
 
 async function initRdoVerPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
   const n=+new URLSearchParams(window.location.search).get('n');

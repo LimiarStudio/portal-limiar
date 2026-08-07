@@ -113,7 +113,7 @@ function renderAdminUsuariosContent(){
 }
 
 async function initAdminUsuariosPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   buildNavProjetos('usuarios');

@@ -1,30 +1,41 @@
 /* =================== SESSION ===================
-   Sessão de verdade: token + dados de quem logou vêm do backend (ver
-   js/login.js) e ficam no localStorage (obraview_token/obraview_user).
-   ROLE continua existindo só pra não precisar reescrever as dezenas de
-   checagens ROLE==='gestor' espalhadas pelo site — agora é sempre calculado
-   a partir de quem realmente logou (CURRENT_USER.isAdmin), nunca escolhido
-   à parte por um parâmetro de URL como antes. */
-function usuarioLogado(){
-  try{ return JSON.parse(localStorage.getItem('obraview_user')||'null'); }
-  catch(e){ return null; }
-}
-const CURRENT_USER = usuarioLogado();
-let ROLE = (CURRENT_USER && CURRENT_USER.isAdmin) ? 'gestor' : 'cliente';
+   Sessão de verdade agora é o Firebase Auth (ver js/firebase-init.js) — não
+   existe mais token/usuário próprios no localStorage. requireAuth() é
+   assíncrona porque até uma sessão já persistida localmente pelo Firebase
+   leva um instante pra ser confirmada (onAuthStateChanged) antes do primeiro
+   disparo; cada init<Página>Page() já é async e chama isso como primeira
+   linha (ver ~9 call sites), então o resto da página só roda depois que
+   CURRENT_USER/ROLE estão prontos.
 
+   isAdmin não vem de custom claims nem de um papel salvo em algum lugar —
+   é sempre resolvido comparando o uid de quem logou com system/admin.uid no
+   Firestore (single source of truth, ver firestore.rules). nome/email pra
+   exibição vêm direto de firebase.auth().currentUser — não duplicados em
+   documento nenhum. ROLE continua existindo só pra não reescrever as dezenas
+   de checagens ROLE==='gestor' espalhadas pelo site. */
+let CURRENT_USER = null;
+let ROLE = 'cliente';
+
+// nunca resolve se não houver usuário — a navegação pra login.html assume o
+// controle antes que o código depois de "await requireAuth()" continue
 function requireAuth(){
-  let token = null;
-  try{ token = localStorage.getItem('obraview_token'); }catch(e){}
-  if(!token) window.location.href = 'login.html';
+  return new Promise(resolve=>{
+    const unsubscribe = firebase.auth().onAuthStateChanged(async user=>{
+      unsubscribe();
+      if(!user){ window.location.href = 'login.html'; return; }
+      let isAdmin = false;
+      try{
+        const adminSnap = await firebase.firestore().doc('system/admin').get();
+        isAdmin = adminSnap.exists && adminSnap.data().uid === user.uid;
+      }catch(e){ isAdmin = false; }
+      CURRENT_USER = {id: user.uid, nome: user.displayName || user.email, email: user.email, isAdmin};
+      ROLE = isAdmin ? 'gestor' : 'cliente';
+      resolve();
+    });
+  });
 }
 async function logout(){
-  let token = null;
-  try{ token = localStorage.getItem('obraview_token'); }catch(e){}
-  try{ if(token) await Api.auth.logout(token); }catch(e){}
-  try{
-    localStorage.removeItem('obraview_token');
-    localStorage.removeItem('obraview_user');
-  }catch(e){}
+  try{ await firebase.auth().signOut(); }catch(e){}
   window.location.href = 'login.html';
 }
 function iniciais(nome){

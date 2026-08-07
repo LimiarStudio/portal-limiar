@@ -123,7 +123,7 @@ async function salvarEdicaoProjeto(pid){
 }
 
 async function initEditarProjetoPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');

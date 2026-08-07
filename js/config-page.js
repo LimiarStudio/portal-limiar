@@ -153,7 +153,7 @@ function renderConfigContent(){
 }
 
 async function initConfigPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   PROJETO_ID = +new URLSearchParams(window.location.search).get('projeto');

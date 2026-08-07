@@ -168,7 +168,7 @@ function renderUsuariosContent(){
 }
 
 async function initUsuariosPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
   $('#content').innerHTML = `<div class="empty">Carregando…</div>`;

@@ -109,8 +109,8 @@ async function salvarNovoProjeto(){
   }
 }
 
-function initNovoProjetoPage(){
-  requireAuth();
+async function initNovoProjetoPage(){
+  await requireAuth();
   renderUserChip();
   if(ROLE!=='gestor'){ window.location.href=withRole('projetos.html'); return; }
   novaImagem=undefined;
