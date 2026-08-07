@@ -26,11 +26,9 @@
 
 const firestoreDb = () => firebase.firestore();
 
-// Fase 5-11: aponta pro projeto Apps Script SCRATCH (nunca o real, que segue
-// em produção rodando o backend antigo até o corte da Fase 12) — só usado
-// por Api.images.*/Api.rdos.gerarPdf, os 2 únicos ops que sobraram no
-// backend depois da Fase 5. Vira a URL real na Fase 12.
-const API_URL = 'https://script.google.com/macros/s/AKfycbzOTXNNfoFSHBl63ZC_6MhKf8p-LgIkDJfZ4y2h6DObA1GsLjmH3LNmbITqcKmQtLaBzA/exec';
+// backend enxuto (Fase 5), já em produção desde a Fase 12 — só usado por
+// Api.images.*/Api.rdos.gerarPdf, os 2 únicos ops que sobraram nele.
+const API_URL = 'https://script.google.com/macros/s/AKfycbwz-gJ4cN6Ay68Fm1ywvyh6A95JtxIN-PKYdH-vViP3akQeuBBAfqXl56K0vjcbCbP0Yg/exec';
 
 async function apiCall(collection, op, args){
   let idToken = null;
