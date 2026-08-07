@@ -48,6 +48,16 @@ service cloud.firestore {
         permDoc(pid).data.cronograma.view == true
       );
     }
+    // delegado (não-admin autorizado a "gerenciar usuários" NESTE projeto,
+    // ver Repo/Permissions.js#definir/js/usuarios-page.js) — precisa listar a
+    // subcoleção inteira de permissions pra ver quem tem acesso ao projeto,
+    // não só a própria. Isso é seguro de expressar numa rule porque não
+    // depende do {uid} de cada documento retornado (constante pra toda a
+    // query, dado um pid) — diferente de "sou o dono deste uid", que Firestore
+    // não consegue prova como verdade pra uma query sem filtro por id.
+    function souGerenteDoProjeto(pid) {
+      return temPermissao(pid) && permDoc(pid).data.gerenciarUsuarios == true;
+    }
 
     // write/delete nunca podem ser true se view for false — mesma checagem
     // defensiva de Repo/Permissions.js#definir, só que aqui é uma fronteira
@@ -58,8 +68,9 @@ service cloud.firestore {
         (m.write == false || m.view == true) &&
         (m.delete == false || m.view == true);
     }
-    function permissoesValidas(d) {
-      return d.gerenciarUsuarios is bool &&
+    function permissoesValidas(d, uid) {
+      return d.uid is string && d.uid == uid &&
+        d.gerenciarUsuarios is bool &&
         d.visao is map && moduloValido(d.visao) &&
         d.rdo is map && moduloValido(d.rdo) &&
         d.financeiro is map && moduloValido(d.financeiro) &&
@@ -87,6 +98,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // regra dedicada e SIMPLES pra habilitar a collection group query que
+    // Api.projects.listar() usa (usuário comum descobrindo os próprios
+    // projetos sem poder listar "projects" inteiro — ver comentário lá).
+    // O Firestore só consegue provar uma "list" query segura quando a
+    // condição correlaciona direto com o filtro da query (where uid==X); a
+    // regra combinada dentro de /projects/{pid}/permissions/{uid} (que
+    // mistura isAdmin()/souGerenteDoProjeto(), cada uma com get() próprio)
+    // não bastou sozinha pra isso — Firestore avalia TODOS os match que
+    // casam com um caminho e libera se QUALQUER um permitir, então esta
+    // regra à parte, mais simples, cobre só esse caso específico.
+    match /{path=**}/permissions/{permUid} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
     // espelho de usuários (Firebase Auth não é enumerável do client SDK) —
     // cada um lê o próprio, admin lê/edita todos
     match /users/{uid} {
@@ -102,8 +127,15 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
 
       match /permissions/{uid} {
-        allow read: if isAdmin() || request.auth.uid == uid;
-        allow create, update: if isAdmin() && permissoesValidas(request.resource.data);
+        // "resource.data.uid == request.auth.uid" (não só o {uid} do
+        // caminho) é o que torna a collection group query de
+        // Api.projects.listar() provável pelas rules pra um usuário comum —
+        // ver o comentário lá. Sem um campo de DADO pra amarrar ao filtro da
+        // query, o Firestore não consegue provar "só volta documentos meus"
+        // só a partir do wildcard do caminho.
+        allow read: if isAdmin() || request.auth.uid == uid || souGerenteDoProjeto(pid) ||
+          (signedIn() && resource.data.uid == request.auth.uid);
+        allow create, update: if isAdmin() && permissoesValidas(request.resource.data, uid);
         allow delete: if isAdmin();
       }
 

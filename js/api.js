@@ -87,6 +87,93 @@ async function apiCall(collection, op, args){
 
 const Api = {};
 
+/* --- usuários: Fase 9. Não existe mais um documento com senhaHash/senhaSalt
+   pra gerenciar — cada usuário agora é uma conta de verdade do Firebase
+   Auth, e o id É o uid dessa conta (uma string, não mais um número — todo
+   lugar que tratava id de usuário como número precisou de ajuste, ver
+   usuarios-page.js/admin-usuarios-page.js). users/{uid} no Firestore é só um
+   ESPELHO de nome/e-mail (o SDK do Firebase Auth não permite listar contas
+   do lado do cliente, daí a necessidade de manter essa cópia em algum lugar
+   consultável). system/admin também guarda nome/e-mail (não só uid) pelo
+   mesmo motivo — QUALQUER usuário autenticado precisa poder mostrar "quem é
+   o administrador" na tela de Usuários e Permissões de um projeto, não só o
+   próprio administrador logado (que poderia ler isso de
+   firebase.auth().currentUser, mas um usuário comum olhando a MESMA tela
+   não tem acesso ao perfil de outra conta).
+
+   Criação é 100% client-side: uma segunda instância do app Firebase, só
+   pra criar a conta sem afetar a sessão do administrador que está logado.
+   Remoção e redefinição de senha de OUTRA conta exigem o Admin SDK (não tem
+   como fazer isso com o usuário logado sendo só o administrador) — ficam
+   por conta do script local scripts/firebase-admin/gerenciar-usuario.js;
+   remover() aqui só revoga acesso (Firestore), a conta em si no Firebase
+   Auth continua existindo até o script rodar (ver Known Risk 3 do plano). */
+Api.users = {
+  listar: async () => {
+    const snap = await firestoreDb().collection('users').get();
+    const lista = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    lista.sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+    return lista;
+  },
+  buscar: async uid => {
+    const doc = await firestoreDb().doc('users/'+uid).get();
+    if(!doc.exists) throw new Error('Usuário não encontrado: '+uid);
+    return Object.assign({id:doc.id}, doc.data());
+  },
+  administrador: async () => {
+    const doc = await firestoreDb().doc('system/admin').get();
+    if(!doc.exists) throw new Error('Administrador não configurado.');
+    return {id: doc.data().uid, nome: doc.data().nome, email: doc.data().email};
+  },
+  // instância secundária e descartável só pra não deslogar o administrador
+  // (createUserWithEmailAndPassword loga automaticamente NA INSTÂNCIA que a
+  // chamou — sem isso, criar um usuário trocaria a sessão de quem está logado)
+  criar: async dados => {
+    const nome = dados.nome, email = dados.email, senha = dados.senha;
+    if(!nome || !email) throw new Error('Informe nome e e-mail.');
+    if(!senha || senha.length<6) throw new Error('A senha precisa ter pelo menos 6 caracteres.');
+    const secundario = firebase.initializeApp(firebaseConfig, 'secundario-'+Date.now());
+    try{
+      const cred = await secundario.auth().createUserWithEmailAndPassword(email, senha);
+      await cred.user.updateProfile({displayName: nome});
+      const uid = cred.user.uid;
+      const doc = {nome:nome, email:email, criadoEm: new Date().toISOString()};
+      await firestoreDb().doc('users/'+uid).set(doc);
+      return Object.assign({id:uid}, doc);
+    }catch(e){
+      if(e.code==='auth/email-already-in-use') throw new Error('Já existe uma conta com o e-mail '+email+'.');
+      throw e;
+    }finally{
+      try{ await secundario.auth().signOut(); }catch(e){}
+      try{ await secundario.delete(); }catch(e){}
+    }
+  },
+  // só nome/e-mail de EXIBIÇÃO (o espelho em users/{uid}) — o e-mail de
+  // login de verdade não muda por aqui, só pelo script local, senão a lista
+  // mostraria um e-mail diferente do que a conta realmente usa pra entrar
+  atualizar: async (uid, patch) => {
+    const seguro = {};
+    if(patch.nome!==undefined) seguro.nome = patch.nome;
+    if(patch.email!==undefined) seguro.email = patch.email;
+    await firestoreDb().doc('users/'+uid).update(seguro);
+    return Api.users.buscar(uid);
+  },
+  // revoga acesso na hora (some da lista, perde toda permissão de projeto) —
+  // NÃO apaga a conta do Firebase Auth de verdade nem libera o e-mail pra
+  // reuso; isso é o script local (offboarding completo)
+  remover: async uid => {
+    const projSnap = await firestoreDb().collection('projects').get();
+    const batch = firestoreDb().batch();
+    batch.delete(firestoreDb().doc('users/'+uid));
+    for(const p of projSnap.docs){
+      const permRef = firestoreDb().doc('projects/'+p.id+'/permissions/'+uid);
+      const permDoc = await permRef.get();
+      if(permDoc.exists) batch.delete(permRef);
+    }
+    await batch.commit();
+  },
+};
+
 /* --- projetos: só datas (BR <-> ISO) mudam de formato; o resto é igual.
    O id do projeto continua um número na memória (era assim desde sempre —
    PROJETO_ID em toda página é "+algo") — só vira string na hora de montar o
@@ -138,9 +225,27 @@ async function apagarDadosDoProjetoFirestore_(id){
   // custo real (poucos MB) e sem risco de apagar algo por engano
 }
 Api.projects = {
+  // admin lê "projects" sem filtro (isAdmin() é constante pra rule, prova
+  // fácil pra qualquer query). Um usuário comum NÃO pode fazer essa mesma
+  // query direto — a rule de projects/{pid} depende de temPermissao(pid),
+  // que VARIA por documento, e o Firestore só permite uma query sem filtro
+  // se a rule for constante (provável) pra QUALQUER resultado possível; sem
+  // isso, rejeita a consulta inteira, não filtra parcialmente. Por isso um
+  // usuário comum descobre seus projetos de outro jeito: uma collection
+  // group query em "permissions" filtrada pelo próprio uid (campo "uid"
+  // dentro do doc, não só o {uid} do caminho — ver Api.permissions.definir e
+  // o "resource.data.uid" nas rules, é isso que torna ESSA query provável),
+  // depois busca cada projeto encontrado individualmente.
   listar: async () => {
-    const snap = await firestoreDb().collection('projects').get();
-    return snap.docs.map(d => projetoDbParaMemoria(Object.assign({}, d.data(), {id:+d.id})));
+    if(CURRENT_USER && CURRENT_USER.isAdmin){
+      const snap = await firestoreDb().collection('projects').get();
+      return snap.docs.map(d => projetoDbParaMemoria(Object.assign({}, d.data(), {id:+d.id})));
+    }
+    const uid = firebase.auth().currentUser.uid;
+    const permSnap = await firestoreDb().collectionGroup('permissions').where('uid','==', uid).get();
+    const pids = permSnap.docs.map(d => d.ref.parent.parent.id);
+    const docs = await Promise.all(pids.map(pid => firestoreDb().doc('projects/'+pid).get()));
+    return docs.filter(d=>d.exists).map(d => projetoDbParaMemoria(Object.assign({}, d.data(), {id:+d.id})));
   },
   buscar: async id => {
     const doc = await firestoreDb().doc('projects/'+id).get();
@@ -213,7 +318,11 @@ Api.permissions = {
     Object.keys(permissoesDoUsuario).forEach(k=>{
       if(k!=='gerenciarUsuarios' && MODULOS_VALIDOS_.indexOf(k)===-1) throw new Error('Módulo desconhecido: '+k);
     });
-    const entrada = {gerenciarUsuarios: !!permissoesDoUsuario.gerenciarUsuarios};
+    // "uid" duplicado como campo (não só o {uid} do caminho do documento) é
+    // o que permite Api.projects.listar() encontrar os projetos de um
+    // usuário comum via uma collection group query provável pelas rules —
+    // ver o comentário lá. Não é lido em lugar nenhum além dessa query.
+    const entrada = {uid:uid, gerenciarUsuarios: !!permissoesDoUsuario.gerenciarUsuarios};
     MODULOS_VALIDOS_.forEach(modulo=>{
       const enviado = permissoesDoUsuario[modulo] || {};
       const view = !!enviado.view;

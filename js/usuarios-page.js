@@ -6,11 +6,20 @@
    página, mas nunca Configurações nem Editar projeto, e nunca pode alterar o administrador
    (acesso completo e fixo, sempre).
 
-   Nota: salvar/remover permissões (permissions.definir/remover) é uma ação restrita ao
-   administrador no backend (ver ACOES_ADMIN em backend/src/Code.js) — um usuário delegado a
-   "gerenciar usuários" consegue abrir esta página e ver tudo, mas só o administrador de fato
-   consegue salvar uma alteração; a tentativa de um delegado mostra o erro do servidor
-   claramente, em vez de falhar em silêncio. */
+   Fase 9: o id de usuário agora é o uid do Firebase Auth (string, não mais número) — todo
+   onclick abaixo que passa um id fica entre aspas por causa disso. Salvar/remover permissões
+   (Api.permissions.definir/remover) continua restrito ao administrador nas Firestore Security
+   Rules — um delegado (gerenciarUsuarios=true) consegue abrir esta página e ver tudo, mas só o
+   administrador de fato consegue salvar; a tentativa de um delegado mostra o erro das rules
+   claramente, em vez de falhar em silêncio.
+
+   Api.users.listar() (usado só por "+ Adicionar usuário", pra saber quem no sistema ainda não
+   tem acesso) continua restrito ao administrador nas rules — listar TODOS os usuários do
+   sistema exigiria uma regra capaz de provar isso pra qualquer projeto que o delegado gerencie,
+   o que as Security Rules não expressam bem sem uma query cara. Como hoje não existe nenhum
+   usuário delegado de verdade em produção, a página degrada de forma graciosa pra um delegado
+   (tudo funciona, exceto adicionar um usuário NOVO) em vez de travar inteira — ver o catch em
+   initUsuariosPage. */
 let PROJETO_ID;
 let usuariosSistema = [];
 let permissoesDoc = null;
@@ -76,23 +85,25 @@ function editarPermissoes(userId){
     </label>
     <p class="card-note" style="margin-top:6px;margin-bottom:0">Passa a poder abrir esta página e editar as permissões de outros usuários — Configurações e Editar projeto continuam fora do alcance, e o administrador nunca é afetado.</p>
     <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
-      <button class="mini-btn mini-btn-danger" onclick="removerAcesso(${userId},'${u.nome.replace(/'/g,"\\'")}')">Remover acesso ao projeto</button>
+      <button class="mini-btn mini-btn-danger" onclick="removerAcesso('${userId}','${u.nome.replace(/'/g,"\\'")}')">Remover acesso ao projeto</button>
     </div>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
-     <button class="btn-primary" style="width:auto" onclick="salvarPermissoesModal(${userId})">Salvar permissões</button>`);
+     <button class="btn-primary" style="width:auto" onclick="salvarPermissoesModal('${userId}')">Salvar permissões</button>`);
 }
 async function salvarPermissoesModal(userId){
   const permissoes={gerenciarUsuarios: $('#perm-gerenciar-usuarios').checked};
   document.querySelectorAll('.perm-view').forEach(cb=>{ permissoes[cb.dataset.modulo]={view:cb.checked, write:false, delete:false}; });
   // mesmo com a interface já impedindo, garante aqui de novo que write/delete nunca
   // fiquem true sem view (defesa extra, não confia só no estado dos checkboxes) —
-  // o backend faz a mesma checagem, então essa é só uma segunda camada
+  // as Security Rules fazem a mesma checagem, essa é só uma segunda camada
   document.querySelectorAll('.perm-write').forEach(cb=>{ const pm=permissoes[cb.dataset.modulo]; pm.write=pm.view && cb.checked; });
   document.querySelectorAll('.perm-delete').forEach(cb=>{ const pm=permissoes[cb.dataset.modulo]; pm.delete=pm.view && cb.checked; });
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   try{
-    permissoesDoc=await Api.permissions.definir(PROJETO_ID, userId, permissoes);
+    const entrada=await Api.permissions.definir(PROJETO_ID, userId, permissoes);
+    if(!permissoesDoc.permissoes) permissoesDoc.permissoes={};
+    permissoesDoc.permissoes[userId]=entrada;
     closeModal();
     renderUsuariosContent();
   }catch(e){
@@ -103,7 +114,8 @@ async function salvarPermissoesModal(userId){
 async function removerAcesso(userId, nome){
   if(!confirm(`Remover o acesso de "${nome}" a este projeto?`)) return;
   try{
-    permissoesDoc=await Api.permissions.remover(PROJETO_ID, userId);
+    await Api.permissions.remover(PROJETO_ID, userId);
+    if(permissoesDoc.permissoes) delete permissoesDoc.permissoes[userId];
     closeModal();
     renderUsuariosContent();
   }catch(e){
@@ -112,7 +124,15 @@ async function removerAcesso(userId, nome){
 }
 
 function abrirAdicionarUsuario(){
-  const jaTemAcesso=new Set(Object.keys((permissoesDoc&&permissoesDoc.permissoes)||{}).map(Number));
+  if(!usuariosSistema.length){
+    const msg = ROLE==='gestor'
+      ? 'Nenhum usuário cadastrado ainda. Cadastre um em Admin · Usuários primeiro.'
+      : 'Só o administrador pode ver a lista completa de usuários do sistema — peça pra ele adicionar quem for preciso.';
+    modal('Adicionar usuário',`<div class="empty">${msg}</div>`,
+      `<button class="btn" onclick="closeModal()">Fechar</button>`);
+    return;
+  }
+  const jaTemAcesso=new Set(Object.keys((permissoesDoc&&permissoesDoc.permissoes)||{}));
   const disponiveis=usuariosSistema.filter(u=>!jaTemAcesso.has(u.id));
   if(!disponiveis.length){
     modal('Adicionar usuário',`<div class="empty">Todos os usuários do sistema já têm algum acesso a este projeto.</div>`,
@@ -128,7 +148,7 @@ function abrirAdicionarUsuario(){
      <button class="btn-primary" style="width:auto" onclick="continuarAdicionarUsuario()">Continuar</button>`);
 }
 function continuarAdicionarUsuario(){
-  const userId=+$('#add-user-select').value;
+  const userId=$('#add-user-select').value;
   closeModal();
   editarPermissoes(userId);
 }
@@ -136,7 +156,7 @@ function continuarAdicionarUsuario(){
 function renderUsuariosContent(){
   const p=projetos.find(x=>x.id===PROJETO_ID);
   const modulos=modulosDoProjeto(p);
-  const comAcesso=Object.keys((permissoesDoc&&permissoesDoc.permissoes)||{}).map(Number);
+  const comAcesso=Object.keys((permissoesDoc&&permissoesDoc.permissoes)||{});
   $('#content').innerHTML=`
   <div class="card">
     <h3>Usuários com acesso a este projeto</h3>
@@ -156,7 +176,7 @@ function renderUsuariosContent(){
           return `<tr>
             <td><b>${escapeHtml(u.nome)}</b></td>
             <td style="font-size:12px">${resumoAcesso(perm, modulos)}</td>
-            <td style="text-align:right"><button class="mini-btn" onclick="editarPermissoes(${userId})">Editar permissões</button></td>
+            <td style="text-align:right"><button class="mini-btn" onclick="editarPermissoes('${userId}')">Editar permissões</button></td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -174,9 +194,14 @@ async function initUsuariosPage(){
   $('#content').innerHTML = `<div class="empty">Carregando…</div>`;
   let p;
   try{
+    // Api.users.listar() é restrito ao administrador nas Security Rules —
+    // um delegado (gerenciarUsuarios=true, não-admin) recebe [] em vez de
+    // travar a página inteira; consegue ver/editar quem já tem acesso, só
+    // não "+ Adicionar usuário" novo (ver comentário no topo do arquivo)
+    const usuariosPromise = Api.users.listar().catch(()=>[]);
     [p, usuariosSistema, permissoesDoc, administrador] = await Promise.all([
       Api.projects.buscar(PROJETO_ID),
-      Api.users.listar(),
+      usuariosPromise,
       Api.permissions.obter(PROJETO_ID),
       Api.users.administrador(),
       carregarPermissoes(PROJETO_ID),
