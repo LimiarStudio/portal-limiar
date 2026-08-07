@@ -45,7 +45,7 @@ function doPost(e){
 }
 
 function doGet(e){
-  return jsonResponse_({ok:true, service:'Portal Limiar backend (scratch/enxuto — Fase 5)', time:new Date().toISOString()});
+  return jsonResponse_({ok:true, service:'Portal Limiar backend (enxuto — imagens e PDF)', time:new Date().toISOString()});
 }
 
 function jsonResponse_(obj){

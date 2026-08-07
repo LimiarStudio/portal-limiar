@@ -1,44 +1,18 @@
-/* =================== BANCO DE DADOS (agregador) ===================
-   Objeto único que Code.js usa pra despachar Db[collection][op](...args).
+/* =================== BANCO DE DADOS (agregador) — versão enxuta ===================
+   Fase 5: só sobram duas coisas que precisam de credencial de servidor —
+   imagem (Drive) e PDF de relatório (DocumentApp + Drive). Tudo o mais
+   (projects, users, permissions, catalog, cronograma, financeiro) mudou pra
+   Firestore, lido/escrito direto do navegador — não faz sentido mais aqui.
 
-   Layout de dados no Drive (dentro de ROOT_FOLDER_ID — ver Lib/Folders.js):
-     admin.json                           — o único administrador (nome, e-mail, senhaHash/senhaSalt) — não é um "usuário"
-     (sessões de login: só CacheService, TTL deslizante de 6h — não vivem no Drive, ver Repo/Auth.js)
-     users/<id>.json                      — usuários (nome, e-mail, senhaHash/senhaSalt — sem papéis/roles)
-     projects/<id>.json                   — projetos
-     projectPermissions/<projectId>.json  — o que cada usuário pode em cada módulo
-     catalogDefaults/etapas.json          — catálogo de fábrica de etapas
-     catalogDefaults/categorias.json      — catálogo de fábrica de categorias
-     catalogDefaults/funcoes.json         — funções de mão de obra (RDO)
-     catalogDefaults/equipamentos.json    — equipamentos (RDO)
-     projectCatalog/<projectId>.json      — customizações de etapas/categorias daquele projeto
-     cronogramas/<projectId>.json         — etapas do cronograma daquele projeto
-     financeiro/<projectId>.json          — etapa -> categorias -> lançamentos
-     rdos/<projectId>/<n>.json            — um relatório semanal por arquivo
-     rdoPdfs/<projectId>/relatorio-<n>.pdf — export avulso de um relatório, sob demanda (ver Repo/Rdos.js#gerarPdf)
-     images/<projectId>/...               — capa e fotos de RDO de verdade (ver Lib/Images.js)
-     archive/<projectId> - <nome>/...     — PDFs + imagens de projetos arquivados (ver Repo/Archive.js)
-
-   Db é uma FUNÇÃO, não um objeto pronto: no Apps Script todo o código do
-   projeto é recarregado do zero a cada execução, na ordem alfabética dos
-   arquivos (Code.js, Db.js, Lib/*, Repo/*, Seed.js). Como "Db.js" vem antes
-   de "Repo/*.js" nessa ordem, um objeto literal capturado no momento em que
-   o ARQUIVO carrega veria RepoUsers (e os demais) ainda como undefined. Uma
-   função só monta o objeto quando é CHAMADA — e ela só é chamada de dentro
-   de doGet/doPost em Code.js, depois que todo o projeto já terminou de
-   carregar. */
+   Db continua sendo uma FUNÇÃO (não um objeto pronto) pelo mesmo motivo de
+   sempre: Apps Script recarrega o projeto do zero a cada execução, em ordem
+   alfabética de arquivo — um objeto literal capturado no carregamento de
+   "Db.js" veria RepoRdos ainda undefined, já que "Repo/Rdos.js" carrega
+   depois. Só quando Db() é CHAMADA (de dentro de doPost, depois que tudo já
+   carregou) é que faz sentido montar o objeto. */
 function Db(){
   return {
-    auth: RepoAuth,
-    users: RepoUsers,
-    projects: RepoProjects,
-    permissions: RepoPermissions,
-    catalog: RepoCatalog,
-    cronograma: RepoCronograma,
-    financeiro: RepoFinanceiro,
-    rdos: RepoRdos,
     images: LibImages,
-    archive: RepoArchive,
-    seed: Seed,
+    rdos: RepoRdos,
   };
 }

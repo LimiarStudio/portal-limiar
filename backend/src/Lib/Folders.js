@@ -6,14 +6,18 @@
 
    Layout dentro de ROOT_FOLDER_ID (Script Property, configurada uma vez —
    nunca adivinhada por nome dentro do "Meu Drive" inteiro, o que seria
-   ambíguo e frágil):
-     users/, projects/, projectPermissions/, catalogDefaults/, projectCatalog/,
-     cronogramas/, financeiro/, rdos/<projectId>/, images/<projectId>/...,
-     archive/<projectId> - <nome>/... */
+   ambíguo e frágil) — aponta pro MESMO Drive real usado pelo backend
+   original, então os fileIds de fotos/PDFs já migrados continuam resolvendo:
+     rdoPdfs/<projectId>/relatorio-<n>.pdf, images/<projectId>/...
+
+   Fase 5: getArchiveFolder() foi removida — o fluxo de arquivar projeto
+   agora é orquestrado inteiramente pelo cliente direto no Firestore (ver
+   plano, Fase 10); imagens/PDFs simplesmente continuam onde já estão no
+   Drive pra sempre, não tem mais uma pasta "archive/" separada. */
 var LibFolders = {
   getRootFolder(){
     const id = PropertiesService.getScriptProperties().getProperty('ROOT_FOLDER_ID');
-    if(!id) throw new Error('Script Property "ROOT_FOLDER_ID" não configurada — veja backend/README.md.');
+    if(!id) throw new Error('Script Property "ROOT_FOLDER_ID" não configurada.');
     try{ return DriveApp.getFolderById(id); }
     catch(e){ throw new Error('ROOT_FOLDER_ID aponta pra uma pasta inacessível ou apagada.'); }
   },
@@ -41,11 +45,6 @@ var LibFolders = {
       const imagesProjeto = LibFolders.getProjectSubfolder('images', projectId);
       const rdosFolder = LibFolders.getOrCreateChild(imagesProjeto, 'rdos');
       return LibFolders.getOrCreateChild(rdosFolder, String(n));
-    });
-  },
-  getArchiveFolder(projectId, nomeProjeto){
-    return resolveCached_('folder:archive:'+projectId, function(){
-      return LibFolders.getOrCreateChild(LibFolders.getDataSubfolder('archive'), projectId+' - '+nomeProjeto);
     });
   },
   invalidate(cacheKey){
