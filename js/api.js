@@ -660,6 +660,21 @@ Api.rdos = {
    (archive.mover no backend enxuto) antes do Firestore ser limpo, pra não
    ficarem misturados com os projetos ativos dentro de images/ e rdoPdfs/
    sem nenhuma pista de que aquele projeto já foi encerrado. */
+// a variação de latência do redirecionamento do Apps Script já é grande pra
+// UMA chamada (2s a 30s+, visto em produção); um projeto com muitos
+// relatórios faz várias chamadas em sequência pra arquivar, e quanto mais
+// chamadas, maior a chance de UMA delas esbarrar por azar no timeout de 35s
+// do apiCall — sem isso, essa chance cresce com o tamanho do projeto. Tenta
+// mais uma vez antes de desistir, mesmo padrão já usado no login por esse
+// mesmo motivo (nunca reservado pra erro de validação — mas gerarPdf só é
+// chamado aqui com dados que a própria função já buscou do Firestore, então
+// um erro de verdade (não timeout) tende a se repetir de qualquer jeito,
+// sem custo real em tentar de novo)
+async function gerarPdfComRetry_(pid, n){
+  try{ return await Api.rdos.gerarPdf(pid, n); }
+  catch(e){ return await Api.rdos.gerarPdf(pid, n); }
+}
+
 Api.archive = {
   // onProgress(etapa, feito, total) opcional — a geração de PDF é sequencial
   // (o backend enxuto processa um relatório por vez) e cada um paga a
@@ -672,7 +687,7 @@ Api.archive = {
     const rdosSnap = await firestoreDb().collection('projects/'+pid+'/rdos').get();
     const numeros = rdosSnap.docs.map(d => d.data().n);
     for(let i=0; i<numeros.length; i++){
-      await Api.rdos.gerarPdf(pid, numeros[i]);
+      await gerarPdfComRetry_(pid, numeros[i]);
       if(onProgress) onProgress('pdf', i+1, numeros.length);
     }
 
