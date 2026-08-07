@@ -14,13 +14,15 @@
    mudar: só o transporte por baixo de cada função trocou, as funções de
    conversão (dbParaMemoria/memoriaParaDb) são as mesmas de sempre.
 
-   Api.users NÃO existe mais aqui — usuários agora são contas de verdade do
-   Firebase Auth, sem equivalente no Apps Script pra ligar; isso volta na
-   Fase 9 com uma implementação totalmente nova (criação client-side, remoção/
-   redefinição de senha por um script local). admin-usuarios.html e
-   usuarios.html ficam temporariamente quebradas até lá — esperado, ainda
-   estamos numa branch de feature. Api.archive também some daqui — a Fase 10
-   substitui por um fluxo orquestrado inteiramente pelo cliente. */
+   Api.users (Fase 9) é contas de verdade do Firebase Auth, não mais um
+   documento com senhaHash/senhaSalt — id é o uid, criação é client-side (uma
+   instância secundária do app, pra não afetar a sessão do administrador),
+   remoção/redefinição de senha de OUTRA conta exigem o Admin SDK e por isso
+   vivem num script local (scripts/firebase-admin/gerenciar-usuario.js).
+
+   Api.archive (Fase 10) também não tem mais equivalente no backend — vira
+   um fluxo orquestrado inteiramente pelo cliente (gera todo PDF de relatório
+   ANTES de apagar qualquer coisa do Firestore, projeto por último). */
 
 const firestoreDb = () => firebase.firestore();
 
@@ -640,5 +642,49 @@ Api.rdos = {
   gerarPdf: async (pid, n) => {
     const [relatorioDb, projetoNome] = await Promise.all([buscarRdoRaw_(pid, n), nomeDoProjeto_(pid)]);
     return apiCall('rdos','gerarPdf',[projetoNome, relatorioDb]);
+  },
+};
+
+/* --- arquivar: Fase 10. Não existe mais Repo/Archive.js nenhum — o backend
+   enxuto (Fase 5) nem tem acesso ao Firestore pra orquestrar isso sozinho.
+   O cliente assume o fluxo inteiro, com uma única invariante de segurança:
+   gera (ou confirma, já que gerarPdf SUBSTITUI em vez de acumular — rodar de
+   novo nunca duplica) o PDF de TODO relatório do projeto ANTES de apagar
+   qualquer coisa, e só apaga o próprio documento do projeto por ÚLTIMO. Se
+   algo falhar no meio da geração de PDFs, nada foi apagado ainda — rodar
+   arquivar de novo do zero é seguro. Se algo falhar no meio dos deletes,
+   "o projeto ainda existe" (o doc em si só some no fim), então também é
+   seguro tentar de novo. A única sequência realmente ruim — PDFs faltando
+   mas registros já apagados — é estruturalmente impossível por essa ordem.
+   Imagens/PDFs no Drive nunca são tocados: ficam nos mesmos caminhos pra
+   sempre, só o Firestore (o que hoje decide "ativo ou não") é limpo. */
+Api.archive = {
+  // onProgress(feito, total) opcional — a geração de PDF é sequencial (o
+  // backend enxuto processa um relatório por vez) e cada um paga a lentidão
+  // de sempre do Apps Script, então um projeto com vários relatórios pode
+  // demorar; sem isso, o botão fica parado sem indicar que algo está
+  // acontecendo de verdade
+  arquivarProjeto: async (pid, confirm, onProgress) => {
+    if(confirm !== 'ARQUIVAR PROJETO') throw new Error('Confirmação inválida.');
+
+    const rdosSnap = await firestoreDb().collection('projects/'+pid+'/rdos').get();
+    const numeros = rdosSnap.docs.map(d => d.data().n);
+    for(let i=0; i<numeros.length; i++){
+      await Api.rdos.gerarPdf(pid, numeros[i]);
+      if(onProgress) onProgress('pdf', i+1, numeros.length);
+    }
+    if(onProgress) onProgress('apagando');
+
+    const batch = firestoreDb().batch();
+    rdosSnap.docs.forEach(d => batch.delete(d.ref));
+    const permsSnap = await firestoreDb().collection('projects/'+pid+'/permissions').get();
+    permsSnap.docs.forEach(d => batch.delete(d.ref));
+    batch.delete(firestoreDb().doc('cronogramas/'+pid));
+    batch.delete(firestoreDb().doc('financeiro/'+pid));
+    batch.delete(firestoreDb().doc('projectCatalog/'+pid));
+    await batch.commit();
+
+    await firestoreDb().doc('projects/'+pid).delete();
+    return {ok:true};
   },
 };

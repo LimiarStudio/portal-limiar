@@ -83,14 +83,19 @@ function onArquivarInputChange(){
 async function confirmarArquivar(pid){
   const btn=$('#arq-confirm-btn');
   btn.disabled=true;
+  const textoOriginal=btn.textContent;
+  btn.textContent='Gerando PDFs...';
   try{
-    await Api.archive.arquivarProjeto(pid, 'ARQUIVAR PROJETO');
+    await Api.archive.arquivarProjeto(pid, 'ARQUIVAR PROJETO', (etapa,feito,total)=>{
+      btn.textContent = etapa==='pdf' ? `Gerando PDF ${feito}/${total}...` : 'Removendo dados...';
+    });
     closeModal();
     alert('Projeto arquivado. Os relatórios foram convertidos em PDF e salvos no Google Drive, e a entrada foi removida do sistema.');
     window.location.href=withRole('projetos.html');
   }catch(e){
-    alert('Não foi possível arquivar o projeto: '+e.message);
+    alert('Não foi possível arquivar o projeto: '+e.message+' Nada foi apagado ainda se a falha aconteceu gerando os PDFs — pode tentar de novo.');
     btn.disabled=false;
+    btn.textContent=textoOriginal;
   }
 }
 
