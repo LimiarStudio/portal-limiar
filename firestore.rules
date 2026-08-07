@@ -1,0 +1,137 @@
+rules_version = '2';
+
+// ================== FIRESTORE SECURITY RULES ==================
+// Substitui a checagem de permissão que hoje só existe no front-end
+// (modulosVisiveis/podeEditar/podeExcluir em js/helpers.js) — aqui vira de
+// verdade uma fronteira de segurança, já que qualquer cliente autenticado
+// pode falar direto com o Firestore (sem passar por nenhum backend).
+//
+// Modelo: existe UM administrador fixo (system/admin, não uma "role" —
+// espelha backend/src/Repo/Users.js#administrador de propósito), com acesso
+// total a tudo. Usuários comuns têm um documento de permissões por projeto
+// (projects/{pid}/permissions/{uid}) com view/write/delete por módulo
+// (visao/rdo/financeiro/cronograma) — mesmo shape de
+// backend/src/Repo/Permissions.js, só que agora num documento por usuário
+// (não um mapa gigante com todo mundo) pra permitir "cada um só lê o
+// próprio", que um documento único não deixaria fazer sem vazar as
+// permissões de todo mundo pra todo mundo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // get()/exists() dentro de uma rule NÃO reavaliam as próprias rules de
+    // leitura do documento consultado — por isso um usuário comum consegue
+    // checar system/admin aqui mesmo sem "ler" o documento pelo caminho normal
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.uid == get(/databases/$(database)/documents/system/admin).data.uid;
+    }
+
+    function permDoc(pid) {
+      return get(/databases/$(database)/documents/projects/$(pid)/permissions/$(request.auth.uid));
+    }
+    function temPermissao(pid) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/projects/$(pid)/permissions/$(request.auth.uid));
+    }
+    function podeNoModulo(pid, modulo, acao) {
+      return temPermissao(pid) && permDoc(pid).data[modulo][acao] == true;
+    }
+    function algumModuloVisivel(pid) {
+      return temPermissao(pid) && (
+        permDoc(pid).data.visao.view == true ||
+        permDoc(pid).data.rdo.view == true ||
+        permDoc(pid).data.financeiro.view == true ||
+        permDoc(pid).data.cronograma.view == true
+      );
+    }
+
+    // write/delete nunca podem ser true se view for false — mesma checagem
+    // defensiva de Repo/Permissions.js#definir, só que aqui é uma fronteira
+    // de verdade (só admin escreve isto), não só um "bom comportamento" do
+    // cliente. Vale pros 4 módulos.
+    function moduloValido(m) {
+      return m.view is bool && m.write is bool && m.delete is bool &&
+        (m.write == false || m.view == true) &&
+        (m.delete == false || m.view == true);
+    }
+    function permissoesValidas(d) {
+      return d.gerenciarUsuarios is bool &&
+        d.visao is map && moduloValido(d.visao) &&
+        d.rdo is map && moduloValido(d.rdo) &&
+        d.financeiro is map && moduloValido(d.financeiro) &&
+        d.cronograma is map && moduloValido(d.cronograma);
+    }
+
+    // system/admin e system/counters: leitura livre pra qualquer autenticado
+    // (todo cliente precisa comparar seu próprio uid com system/admin.uid pra
+    // saber se é admin; o contador de próximo id de projeto também precisa
+    // ser lido antes de incrementado). Escrita: só o setup local (Admin SDK,
+    // que ignora as rules) grava system/admin; system/counters é escrito
+    // pelo próprio admin autenticado ao criar um projeto (ver js/api.js).
+    match /system/admin {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /system/counters {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // catálogo de fábrica: mesmo pra todo mundo, gerido só pelo script local
+    match /catalogDefaults/{docId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // espelho de usuários (Firebase Auth não é enumerável do client SDK) —
+    // cada um lê o próprio, admin lê/edita todos
+    match /users/{uid} {
+      allow read: if isAdmin() || request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
+    match /projects/{pid} {
+      // side effect bem-vindo: antes, qualquer usuário logado via API direta
+      // via a lista INTEIRA de projetos (ACOES_LEITURA não checava
+      // pertencimento) — aqui só vê o que tem permissão em algum módulo
+      allow read: if isAdmin() || temPermissao(pid);
+      allow create, update, delete: if isAdmin();
+
+      match /permissions/{uid} {
+        allow read: if isAdmin() || request.auth.uid == uid;
+        allow create, update: if isAdmin() && permissoesValidas(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      match /rdos/{n} {
+        allow read: if isAdmin() || podeNoModulo(pid, 'rdo', 'view');
+        allow create, update: if isAdmin() || podeNoModulo(pid, 'rdo', 'write');
+        allow delete: if isAdmin() || podeNoModulo(pid, 'rdo', 'delete');
+      }
+    }
+
+    match /cronogramas/{pid} {
+      allow read: if isAdmin() || podeNoModulo(pid, 'cronograma', 'view');
+      allow create, update: if isAdmin() || podeNoModulo(pid, 'cronograma', 'write');
+      allow delete: if isAdmin() || podeNoModulo(pid, 'cronograma', 'delete');
+    }
+
+    match /financeiro/{pid} {
+      allow read: if isAdmin() || podeNoModulo(pid, 'financeiro', 'view');
+      allow create, update: if isAdmin() || podeNoModulo(pid, 'financeiro', 'write');
+      allow delete: if isAdmin() || podeNoModulo(pid, 'financeiro', 'delete');
+    }
+
+    // taxonomia (etapas/categorias customizadas do projeto) — não é
+    // sensível por si só, então basta ter QUALQUER módulo visível pra ler;
+    // só admin edita (mesmo padrão de catalog.* em Code.js hoje)
+    match /projectCatalog/{pid} {
+      allow read: if isAdmin() || algumModuloVisivel(pid);
+      allow write: if isAdmin();
+    }
+  }
+}

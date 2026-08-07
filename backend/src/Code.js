@@ -45,7 +45,7 @@ var ACOES_LEITURA = [
   'cronograma.listar',
   'financeiro.tudo','financeiro.porEtapa',
   'permissions.obter','permissions.doUsuario','permissions.efetiva',
-  'catalog.etapasFactory','catalog.categoriasFactory','catalog.funcoesFactory','catalog.equipamentosFactory','catalog.etapasDoProjeto','catalog.categoriasDoProjeto',
+  'catalog.etapasFactory','catalog.categoriasFactory','catalog.funcoesFactory','catalog.equipamentosFactory','catalog.etapasDoProjeto','catalog.categoriasDoProjeto','catalog.overrides',
   'rdos.listar','rdos.buscar','rdos.proximoNumero','rdos.gerarPdf',
 ];
 

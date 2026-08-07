@@ -1,0 +1,24 @@
+{
+  "name": "projeto_limiar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "serve.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LimiarStudio/portal-limiar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/LimiarStudio/portal-limiar/issues"
+  },
+  "homepage": "https://github.com/LimiarStudio/portal-limiar#readme",
+  "devDependencies": {
+    "firebase-tools": "^15.26.0"
+  }
+}
