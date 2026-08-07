@@ -14,7 +14,7 @@ function renderProjetos(){
 }
 
 async function initProjetosPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   buildNavProjetos('projetos');
   $('#crumb').textContent='Início';

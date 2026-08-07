@@ -191,7 +191,7 @@ async function saveRDO(pid){
 }
 
 async function initRdoNovoPage(){
-  requireAuth();
+  await requireAuth();
   renderUserChip();
   PROJETO_ID=+new URLSearchParams(window.location.search).get('projeto');
   const editN=new URLSearchParams(window.location.search).get('n');

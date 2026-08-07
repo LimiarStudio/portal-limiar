@@ -1,10 +1,21 @@
 /* =================== LOGIN ===================
-   Login de verdade: chama o backend (Api.auth.login), guarda o token da
-   sessão e os dados de quem logou — ver js/session.js pra como isso vira
-   ROLE/CURRENT_USER no resto do site. Usuário sem papel fixo: o que ele
-   pode fazer em cada projeto é definido em Usuários e Permissões, não
-   escolhido aqui — só o administrador tem um jeito de logar diferente
-   (conta única e fixa, ver backend/src/Repo/Auth.js). */
+   Login de verdade: Firebase Auth (signInWithEmailAndPassword) — sem token
+   próprio, sem localStorage. onAuthStateChanged (ver js/session.js) é quem
+   detecta a sessão daqui pra frente, inclusive entre recarregamentos de
+   página, então login() só precisa disparar o signIn e redirecionar; não
+   guarda mais nada manualmente.
+
+   Não existe mais o round-trip de buscarPorEmail() depois do login só pra
+   descobrir o id de quem não é admin — firebase.auth().currentUser.uid JÁ É
+   esse id, direto, sem chamada nenhuma.
+
+   "E-mail ou senha inválidos" continua sendo a mensagem SEMPRE, tanto pra
+   e-mail inexistente quanto pra senha errada — não dá pra descobrir por
+   tentativa se um e-mail está cadastrado. O Firebase Auth às vezes já
+   consolida os dois casos num único código (auth/invalid-credential) por
+   conta própria, mas os códigos antigos (user-not-found/wrong-password)
+   ainda podem aparecer dependendo da versão/config do projeto — os dois
+   caem na mesma mensagem genérica abaixo. */
 async function login(){
   const email = $('#login-email').value.trim();
   const senha = $('#login-senha').value;
@@ -19,27 +30,23 @@ async function login(){
   btn.disabled = true;
   btn.textContent = 'Entrando...';
   try{
-    const sessao = await Api.auth.login(email, senha);
-    // token precisa estar salvo ANTES de qualquer outra chamada — apiCall lê
-    // o token do localStorage, então buscarPorEmail (linha abaixo) iria sem
-    // token nenhum se isso ficasse pra depois
-    localStorage.setItem('obraview_token', sessao.token);
-    // login não devolve id (administrador não tem um) — resolvido à parte,
-    // só pra quem não é admin, já que permissões são sempre por userId
-    let id = null;
-    if(!sessao.isAdmin){
-      const usuario = await Api.users.buscarPorEmail(email);
-      id = usuario ? usuario.id : null;
-    }
-    localStorage.setItem('obraview_user', JSON.stringify({nome:sessao.nome, email:sessao.email, isAdmin:sessao.isAdmin, id}));
+    await firebase.auth().signInWithEmailAndPassword(email, senha);
     window.location.href = 'projetos.html';
   }catch(e){
-    // se o login em si deu certo mas algo depois falhou (ex.: buscarPorEmail),
-    // não deixa um token órfão sem obraview_user correspondente
-    try{ localStorage.removeItem('obraview_token'); }catch(e2){}
-    erro.textContent = e.message;
+    erro.textContent = mensagemDeErroDeLogin_(e);
     erro.style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Entrar';
   }
+}
+
+function mensagemDeErroDeLogin_(e){
+  const credenciaisInvalidas = [
+    'auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential',
+    'auth/invalid-email', 'auth/user-disabled',
+  ];
+  if(credenciaisInvalidas.indexOf(e.code)!==-1) return 'E-mail ou senha inválidos.';
+  if(e.code==='auth/too-many-requests') return 'Muitas tentativas seguidas — aguarde um pouco e tente de novo.';
+  if(e.code==='auth/network-request-failed') return 'Não foi possível conectar. Verifique sua internet e tente novamente.';
+  return 'E-mail ou senha inválidos.';
 }

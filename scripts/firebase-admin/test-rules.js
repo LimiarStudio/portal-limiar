@@ -38,6 +38,12 @@ async function firestoreGet(idToken, docPath){
   });
   return {status: res.status, body: await res.json()};
 }
+async function firestoreList(idToken, collectionPath){
+  const res = await fetch(`https://firestore.googleapis.com/v1/projects/${serviceAccount.project_id}/databases/(default)/documents/${collectionPath}`, {
+    headers: {Authorization: `Bearer ${idToken}`},
+  });
+  return {status: res.status, body: await res.json()};
+}
 async function firestoreSet(idToken, docPath, fields){
   const res = await fetch(`https://firestore.googleapis.com/v1/projects/${serviceAccount.project_id}/databases/(default)/documents/${docPath}`, {
     method: 'PATCH', headers: {Authorization: `Bearer ${idToken}`, 'Content-Type':'application/json'},
@@ -104,6 +110,26 @@ async function main(){
   // 7) A tenta ler cronogramas/ (não tem permissão em cronograma) -> deve falhar
   r = await firestoreGet(tokenA, `cronogramas/${TEST_PID}`);
   check('usuário sem view no módulo NÃO lê esse módulo', r.status !== 200);
+
+  // 7b) B (sem gerenciarUsuarios) tenta LISTAR a subcoleção inteira de
+  // permissions do projeto -> deve falhar (nem A, que tem gerenciarUsuarios
+  // false também, conseguiria)
+  r = await firestoreList(tokenB, `projects/${TEST_PID}/permissions`);
+  check('usuário comum NÃO consegue listar as permissões de todo mundo no projeto', r.status !== 200);
+
+  // 7c) dá gerenciarUsuarios=true pra A (via Admin SDK, simulando o admin
+  // configurando isso) e confirma que A AGORA consegue listar a subcoleção
+  // inteira — é o que usuarios-page.js precisa pra um delegado ver quem tem
+  // acesso ao projeto, não só a própria permissão
+  await db.doc(`projects/${TEST_PID}/permissions/${userA.uid}`).set({
+    gerenciarUsuarios:true,
+    visao:{view:false,write:false,delete:false},
+    rdo:{view:true,write:false,delete:false},
+    financeiro:{view:false,write:false,delete:false},
+    cronograma:{view:false,write:false,delete:false},
+  });
+  r = await firestoreList(tokenA, `projects/${TEST_PID}/permissions`);
+  check('delegado (gerenciarUsuarios=true) consegue listar as permissões do projeto', r.status === 200 && Array.isArray(r.body.documents) && r.body.documents.length >= 1, r.status);
 
   // 8) admin (mesmo sem doc de permissões nenhum) lê e escreve livremente
   const adminSnap = await db.doc('system/admin').get();

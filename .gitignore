@@ -2,6 +2,7 @@ Thumbs.db
 .DS_Store
 node_modules/
 backend/.clasp.json
+backend-scratch/.clasp.json
 .claude/settings.local.json
 key/
 scripts/firebase-admin/migration-export.json

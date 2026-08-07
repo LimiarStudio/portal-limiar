@@ -42,8 +42,11 @@ async function main(){
     console.log('Admin criado no Firebase Auth, uid =', userRecord.uid);
   }
 
-  // 2) system/admin
-  await db.doc('system/admin').set({ uid: userRecord.uid });
+  // 2) system/admin — inclui nome/e-mail (não só uid): qualquer usuário
+  // autenticado precisa poder mostrar "quem é o administrador" na tela de
+  // Usuários e Permissões de um projeto, não só o próprio administrador
+  // logado (que poderia ler isso de firebase.auth().currentUser)
+  await db.doc('system/admin').set({ uid: userRecord.uid, nome: ADMIN_NOME, email: ADMIN_EMAIL });
   console.log('system/admin gravado.');
 
   // 3) system/counters — só grava se ainda não existir, pra nunca sobrescrever
