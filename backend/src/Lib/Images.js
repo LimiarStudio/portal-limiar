@@ -9,6 +9,7 @@
 var LibImages = {
   // kind 'capa' -> images/<projectId>/capa.<ext> (sobrescreve a anterior, se houver)
   // kind 'rdo-foto', extra:{n,index} -> images/<projectId>/rdos/<n>/<timestamp>-<index>.<ext>
+  // kind 'lancamento-foto' -> images/<projectId>/financeiro/<timestamp>.<ext>
   saveDataUrl(dataUrl, projectId, kind, extra){
     const match = /^data:([\w/+.-]+);base64,([\s\S]+)$/.exec(dataUrl);
     if(!match) throw new Error('Data URL inválida — esperado algo como "data:image/png;base64,....".');
@@ -23,8 +24,11 @@ var LibImages = {
       extra = extra || {};
       folder = LibFolders.getRdoPhotosSubfolder(projectId, extra.n);
       filename = Date.now()+'-'+extra.index+'.'+ext;
+    }else if(kind==='lancamento-foto'){
+      folder = LibFolders.getFinanceiroFotosSubfolder(projectId);
+      filename = Date.now()+'.'+ext;
     }else{
-      throw new Error('kind deve ser "capa" ou "rdo-foto".');
+      throw new Error('kind deve ser "capa", "rdo-foto" ou "lancamento-foto".');
     }
 
     // reenvio (ex.: trocar a capa) substitui o(s) arquivo(s) anterior(es) —

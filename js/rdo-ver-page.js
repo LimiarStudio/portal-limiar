@@ -62,24 +62,7 @@ function renderRdoVer(p, r){
 function abrirFotoLightbox(i){
   const f = FOTOS_RDO_ATUAL[i];
   if(!f || !f.src) return;
-  $('#modalRoot').innerHTML = `<div class="overlay lightbox-overlay" onclick="if(event.target===this)fecharLightbox_()">
-    <div class="lightbox-inner">
-      <button class="lightbox-close" onclick="fecharLightbox_()">×</button>
-      <img class="lightbox-img" src="${f.src}" alt="${escapeHtml(f.cap||'')}">
-      ${f.cap?`<div class="lightbox-cap">${escapeHtml(f.cap)}</div>`:''}
-    </div>
-  </div>`;
-  document.addEventListener('keydown', fecharLightboxNoEsc_);
-}
-// todo caminho de fechar (x, clique fora, Esc) passa por aqui — só o Esc
-// teria caminho próprio pra remover o listener, então centraliza pra não
-// vazar um listener de keydown a cada foto aberta
-function fecharLightbox_(){
-  closeModal();
-  document.removeEventListener('keydown', fecharLightboxNoEsc_);
-}
-function fecharLightboxNoEsc_(e){
-  if(e.key==='Escape') fecharLightbox_();
+  abrirLightbox(f.src, f.cap);
 }
 
 async function initRdoVerPage(){

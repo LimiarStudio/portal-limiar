@@ -47,6 +47,12 @@ var LibFolders = {
       return LibFolders.getOrCreateChild(rdosFolder, String(n));
     });
   },
+  getFinanceiroFotosSubfolder(projectId){
+    return resolveCached_('folder:financeiroFotos:'+projectId, function(){
+      const imagesProjeto = LibFolders.getProjectSubfolder('images', projectId);
+      return LibFolders.getOrCreateChild(imagesProjeto, 'financeiro');
+    });
+  },
   invalidate(cacheKey){
     PropertiesService.getScriptProperties().deleteProperty(cacheKey);
   },

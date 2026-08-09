@@ -81,8 +81,12 @@ async function removeCategoriaFin(pid,etapa,i){
     alert('Não foi possível remover a categoria: '+e.message);
   }
 }
+// data URL escolhida no modal "Lançar gasto" (comprovante), ainda não salva —
+// mesmo padrão de novaImagem em editar-projeto-page.js
+let gastoFotoDataUrl;
 function openGasto(pid,etapa,i){
   const it=financeiro[pid][etapa][i], real=realizado(it), saldo=it.prev-real;
+  gastoFotoDataUrl=undefined;
   modal('Lançar gasto — '+etapa+' · '+it.nome,`
     <div class="grid-3" style="margin-bottom:16px">
       ${kpi('Orçado',fmtK(it.prev))}
@@ -95,9 +99,32 @@ function openGasto(pid,etapa,i){
       <div class="fg"><label>&nbsp;</label><div class="mut" style="font-size:12px;padding-top:9px">Somado ao gasto</div></div>
       <div class="fg full"><label>Descrição do gasto</label><input id="g-desc" placeholder="Ex.: Concreto usinado - NF 1234"></div>
     </div>
+    <div class="fg full" style="margin-top:12px">
+      <label>Comprovante (opcional)</label>
+      <input type="file" id="g-foto-input" accept="image/*" style="display:none" onchange="onGastoFotoChange(this)">
+      <div id="g-foto-preview"></div>
+      <button type="button" class="mini-btn" style="margin-top:8px" onclick="$('#g-foto-input').click()">Escolher imagem</button>
+    </div>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveGasto(${pid},'${etapa}',${i})">Lançar gasto</button>`);
 }
+async function onGastoFotoChange(input){
+  const file=(input.files||[])[0];
+  input.value='';
+  if(!file) return;
+  try{
+    gastoFotoDataUrl=await resizeImageFile(file);
+    drawGastoFotoPreview();
+  }catch(e){
+    alert('Não foi possível processar a imagem: '+e.message);
+  }
+}
+function drawGastoFotoPreview(){
+  $('#g-foto-preview').innerHTML = gastoFotoDataUrl
+    ? `<div class="photo" style="width:130px;margin-top:8px"><button type="button" class="del" onclick="removerGastoFoto()">×</button><div class="ph" style="height:90px"><img src="${gastoFotoDataUrl}"></div></div>`
+    : '';
+}
+function removerGastoFoto(){ gastoFotoDataUrl=undefined; drawGastoFotoPreview(); }
 async function saveGasto(pid,etapa,i){
   const val=+$('#g-val').value;
   if(!(val>0)){alert('Informe um valor gasto maior que zero.');return;}
@@ -107,7 +134,9 @@ async function saveGasto(pid,etapa,i){
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   try{
-    await Api.financeiro.lancarGasto(pid, etapa, nome, {data:d, desc, valor:val});
+    const l={data:d, desc, valor:val};
+    if(gastoFotoDataUrl) l.fotoDataUrl=gastoFotoDataUrl;
+    await Api.financeiro.lancarGasto(pid, etapa, nome, l);
     financeiro[pid][etapa]=await Api.financeiro.porEtapa(pid, etapa);
     closeModal();renderProjetoTabs();
   }catch(e){
@@ -115,16 +144,35 @@ async function saveGasto(pid,etapa,i){
     btn.disabled=false;
   }
 }
+// "DD/MM/AAAA" -> AAAAMMDD, só pra ordenar — mesma quebra por "/" que
+// gastoPorMes já usa em data.js
+const chaveData = dataBr => { const [d,m,a]=dataBr.split('/').map(Number); return a*10000+m*100+d; };
+
+// preenchido por verLanc, lido por abrirLancFotoLightbox(pos) — evita ter que
+// escapar legenda/src dentro de um atributo onclick (mesmo motivo de
+// FOTOS_RDO_ATUAL em rdo-ver-page.js)
+let LANC_ATUAL = [];
 function verLanc(pid,etapa,i){
   const it=financeiro[pid][etapa][i];
   const gest=ROLE==='gestor';
+  // mais recente primeiro (por mês/ano da data da compra), não mais por
+  // ordem de lançamento — "li" (índice original no array) segue sendo o que
+  // remover/removeLancamento espera, então guarda os dois lado a lado
+  const ordenados=it.lanc.map((l,li)=>({l,li})).sort((a,b)=>chaveData(b.l.data)-chaveData(a.l.data));
+  LANC_ATUAL=ordenados.map(o=>o.l);
   modal('Lançamentos — '+etapa+' · '+it.nome,`
-    <table><thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th>${gest?'<th></th>':''}</tr></thead>
-    <tbody>${it.lanc.length?it.lanc.map((l,li)=>`<tr><td>${l.data}</td><td>${l.desc}</td><td class="num">${fmt(l.valor)}</td>
+    <table><thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th></th>${gest?'<th></th>':''}</tr></thead>
+    <tbody>${ordenados.length?ordenados.map(({l,li},pos)=>`<tr><td>${l.data}</td><td>${l.desc}</td><td class="num">${fmt(l.valor)}</td>
+      <td>${l.foto?`<div class="photo" style="width:36px;height:36px;border-radius:6px"><div class="ph" style="height:36px;cursor:zoom-in" onclick="abrirLancFotoLightbox(${pos})">${fotoTileBody(l.foto)}</div></div>`:''}</td>
       ${gest?`<td style="text-align:right"><button class="mini-btn mini-btn-danger" onclick="removeLancamento(${pid},'${etapa}',${i},${li})">Remover</button></td>`:''}</tr>`).join('')
-      :`<tr><td colspan="${gest?4:3}" class="mut" style="text-align:center;padding:16px 0">Nenhum lançamento ainda.</td></tr>`}</tbody>
-    <tfoot><tr><td colspan="2"><b>Total realizado</b></td><td class="num"><b>${fmt(realizado(it))}</b></td>${gest?'<td></td>':''}</tr></tfoot></table>
+      :`<tr><td colspan="${gest?5:4}" class="mut" style="text-align:center;padding:16px 0">Nenhum lançamento ainda.</td></tr>`}</tbody>
+    <tfoot><tr><td colspan="2"><b>Total realizado</b></td><td class="num"><b>${fmt(realizado(it))}</b></td><td></td>${gest?'<td></td>':''}</tr></tfoot></table>
   `,`<button class="btn" onclick="closeModal()">Fechar</button>`);
+}
+function abrirLancFotoLightbox(pos){
+  const l=LANC_ATUAL[pos];
+  if(!l || !l.foto) return;
+  abrirLightbox(l.foto.src, l.desc);
 }
 async function removeLancamento(pid,etapa,i,li){
   const l=financeiro[pid][etapa][i].lanc[li];

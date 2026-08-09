@@ -468,8 +468,16 @@ Api.cronograma = {
    projeto, mesmo padrão de leitura-modificação-escrita do cronograma acima
    (removerLancamento continua por índice, não por id — mesma ordem sempre,
    já que lanc[] nunca é reordenado). --- */
-function lancDbParaMemoria(l){ return {data:inputParaData(l.data), desc:l.desc, valor:l.valor}; }
-function lancMemoriaParaDb(l){ return {data:dataParaInput(l.data), desc:l.desc, valor:l.valor}; }
+// foto do lançamento é opcional e, como a de um RDO, guarda só o fileId no
+// banco — fotoDbParaMemoria() (mais abaixo) já resolve fileId -> url lh3
+function lancDbParaMemoria(l){
+  return {data:inputParaData(l.data), desc:l.desc, valor:l.valor, foto: l.fotoFileId ? fotoDbParaMemoria({legenda:l.desc, fileId:l.fotoFileId}) : null};
+}
+function lancMemoriaParaDb(l){
+  const out = {data:dataParaInput(l.data), desc:l.desc, valor:l.valor};
+  if(l.foto && l.foto.fileId) out.fotoFileId = l.foto.fileId;
+  return out;
+}
 function categoriaFinDbParaMemoria(c){ return {nome:c.nome, prev:c.prev, lanc:(c.lanc||[]).map(lancDbParaMemoria)}; }
 function financeiroDocDbParaMemoria(doc){
   const out = {};
@@ -503,11 +511,19 @@ Api.financeiro = {
     await salvarFinanceiroDocFs_(pid, doc);
     return categoriaFinDbParaMemoria(cat);
   },
+  // l.fotoDataUrl (opcional) = foto recém-anexada no modal "Lançar gasto",
+  // ainda como data URL — sobe pro Drive antes de escrever o documento, mesmo
+  // padrão de Api.rdos.salvar (ver comentário ali embaixo)
   lancarGasto: async (pid, etapa, categoriaNome, l) => {
     const doc = await financeiroDocFs_(pid);
     const cat = (doc[etapa]||[]).find(c=>c.nome===categoriaNome);
     if(!cat) throw new Error('Categoria "'+categoriaNome+'" não encontrada em '+etapa+'.');
-    cat.lanc.push(lancMemoriaParaDb(l));
+    const lDb = lancMemoriaParaDb(l);
+    if(l.fotoDataUrl){
+      const up = await Api.images.saveLancamentoFoto(pid, l.fotoDataUrl);
+      lDb.fotoFileId = up.fileId;
+    }
+    cat.lanc.push(lDb);
     await salvarFinanceiroDocFs_(pid, doc);
     return categoriaFinDbParaMemoria(cat);
   },
@@ -531,6 +547,7 @@ Api.financeiro = {
 Api.images = {
   saveCapa: (pid, dataUrl) => apiCall('images','saveDataUrl',[dataUrl, pid, 'capa']),
   saveRdoFoto: (pid, n, index, dataUrl) => apiCall('images','saveDataUrl',[dataUrl, pid, 'rdo-foto', {n, index}]),
+  saveLancamentoFoto: (pid, dataUrl) => apiCall('images','saveDataUrl',[dataUrl, pid, 'lancamento-foto']),
   remove: fileId => apiCall('images','remove',[fileId]),
 };
 
