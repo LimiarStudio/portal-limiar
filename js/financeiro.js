@@ -154,19 +154,19 @@ const chaveData = dataBr => { const [d,m,a]=dataBr.split('/').map(Number); retur
 let LANC_ATUAL = [];
 function verLanc(pid,etapa,i){
   const it=financeiro[pid][etapa][i];
-  const gest=ROLE==='gestor';
+  const podeExclFin=podeExcluir(pid,'financeiro');
   // mais recente primeiro (por mês/ano da data da compra), não mais por
   // ordem de lançamento — "li" (índice original no array) segue sendo o que
   // remover/removeLancamento espera, então guarda os dois lado a lado
   const ordenados=it.lanc.map((l,li)=>({l,li})).sort((a,b)=>chaveData(b.l.data)-chaveData(a.l.data));
   LANC_ATUAL=ordenados.map(o=>o.l);
   modal('Lançamentos — '+etapa+' · '+it.nome,`
-    <table><thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th></th>${gest?'<th></th>':''}</tr></thead>
+    <table><thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th></th>${podeExclFin?'<th></th>':''}</tr></thead>
     <tbody>${ordenados.length?ordenados.map(({l,li},pos)=>`<tr><td>${l.data}</td><td>${l.desc}</td><td class="num">${fmt(l.valor)}</td>
       <td>${l.foto?`<div class="photo" style="width:36px;height:36px;border-radius:6px"><div class="ph" style="height:36px;cursor:zoom-in" onclick="abrirLancFotoLightbox(${pos})">${fotoTileBody(l.foto)}</div></div>`:''}</td>
-      ${gest?`<td style="text-align:right"><button class="mini-btn mini-btn-danger" onclick="removeLancamento(${pid},'${etapa}',${i},${li})">Remover</button></td>`:''}</tr>`).join('')
-      :`<tr><td colspan="${gest?5:4}" class="mut" style="text-align:center;padding:16px 0">Nenhum lançamento ainda.</td></tr>`}</tbody>
-    <tfoot><tr><td colspan="2"><b>Total realizado</b></td><td class="num"><b>${fmt(realizado(it))}</b></td><td></td>${gest?'<td></td>':''}</tr></tfoot></table>
+      ${podeExclFin?`<td style="text-align:right"><button class="mini-btn mini-btn-danger" onclick="removeLancamento(${pid},'${etapa}',${i},${li})">Remover</button></td>`:''}</tr>`).join('')
+      :`<tr><td colspan="${podeExclFin?5:4}" class="mut" style="text-align:center;padding:16px 0">Nenhum lançamento ainda.</td></tr>`}</tbody>
+    <tfoot><tr><td colspan="2"><b>Total realizado</b></td><td class="num"><b>${fmt(realizado(it))}</b></td><td></td>${podeExclFin?'<td></td>':''}</tr></tfoot></table>
   `,`<button class="btn" onclick="closeModal()">Fechar</button>`);
 }
 function abrirLancFotoLightbox(pos){

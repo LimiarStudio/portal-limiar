@@ -33,11 +33,11 @@ function renderProjetoTabs(){
     modulos.map(([k,l])=>`<div class="tab ${current.tab===k?'active':''}" onclick="setTab('${k}')">${l}</div>`).join('')+`</div>`;
   if(current.tab==='visao') c.innerHTML+=renderVisao(p);
   if(current.tab==='rdo'){
-    if(ROLE==='gestor') ta.innerHTML=`<a class="btn-primary" style="width:auto;display:inline-block;text-decoration:none;text-align:center" href="${withRole('rdo-novo.html?projeto='+PROJETO_ID)}">+ Novo Relatório</a>`;
+    if(podeEditar(PROJETO_ID,'rdo')) ta.innerHTML=`<a class="btn-primary" style="width:auto;display:inline-block;text-decoration:none;text-align:center" href="${withRole('rdo-novo.html?projeto='+PROJETO_ID)}">+ Novo Relatório</a>`;
     c.innerHTML+=renderRDO(p);
   }
-  if(current.tab==='financeiro'){ if(ROLE==='gestor') ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="openCategoria(${PROJETO_ID})">+ Nova categoria</button>`; c.innerHTML+=renderFin(p);}
-  if(current.tab==='cronograma'){ if(ROLE==='gestor') ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="${p.tipo==='relatorios'?'openEtapaSimples':'openEtapa'}(${PROJETO_ID})">+ Nova etapa</button>`; c.innerHTML+=renderCrono(p);}
+  if(current.tab==='financeiro'){ if(podeEditar(PROJETO_ID,'financeiro')) ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="openCategoria(${PROJETO_ID})">+ Nova categoria</button>`; c.innerHTML+=renderFin(p);}
+  if(current.tab==='cronograma'){ if(podeEditar(PROJETO_ID,'cronograma')) ta.innerHTML=`<button class="btn-primary" style="width:auto" onclick="${p.tipo==='relatorios'?'openEtapaSimples':'openEtapa'}(${PROJETO_ID})">+ Nova etapa</button>`; c.innerHTML+=renderCrono(p);}
 }
 
 async function initProjetoPage(){

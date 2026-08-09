@@ -84,7 +84,7 @@ function renderGastoMensal(pid){
 
 function renderRDO(p){
   const list=rdos[p.id]||[];
-  if(!list.length) return `<div class="card"><div class="empty">Nenhum relatório lançado ainda.${ROLE==='gestor'?' Clique em <b>+ Novo Relatório</b>.':''}</div></div>`;
+  if(!list.length) return `<div class="card"><div class="empty">Nenhum relatório lançado ainda.${podeEditar(p.id,'rdo')?' Clique em <b>+ Novo Relatório</b>.':''}</div></div>`;
   return `<div class="card"><h3>Relatórios Semanais</h3><p class="card-note">${list.length} relatórios · o cliente visualiza cada um em tempo real</p>`+
     list.map(r=>`<a class="rdo-item" href="${withRole('rdo-ver.html?projeto='+p.id+'&n='+r.n)}">
       <div class="rdo-num"><small>Rel.</small>${r.n}</div>
@@ -108,7 +108,7 @@ function renderFin(p){
   const etapas=etapasFinanceiras(p.id);
   const tp=finTotalPrevisto(p.id), tr=finTotalRealizado(p.id), trOrc=finTotalRealizadoOrcado(p.id);
   const totais=categoriaTotals(p.id);
-  const gest=ROLE==='gestor';
+  const podeEditFin=podeEditar(p.id,'financeiro'), podeExclFin=podeExcluir(p.id,'financeiro');
   return `
   <div class="grid-3">
     ${kpi('Total orçado',fmtK(tp))}
@@ -135,7 +135,7 @@ function renderFin(p){
           // a barra maior (orçado ou gasto, o que for maior) é sempre a referência cheia —
           // as cores não mudam com estouro, o badge de % já avisa quando passou do orçado
           const localMax=Math.max(c.prev,real,1);
-          return `<div class="fin-row" style="grid-template-columns:190px 1fr 120px ${gest?'160px':'0'}">
+          return `<div class="fin-row" style="grid-template-columns:190px 1fr 120px ${(podeEditFin||podeExclFin)?'160px':'0'}">
             <div>${c.nome}<br>
               ${(c.lanc&&c.lanc.length)?`<button class="linklike" onclick="verLanc(${p.id},'${etapa}',${i})">${c.lanc.length} lançamento(s)</button>`:`<span class="mut" style="font-size:11px">sem gastos</span>`}</div>
             <div style="display:flex;align-items:center;gap:14px">
@@ -148,16 +148,16 @@ function renderFin(p){
             <div class="num" style="font-size:12px"><b>${fmtK(real)}</b><br>${semOrcamento
               ?`<span class="mut">sem orçamento</span>`
               :`<span class="mut">de ${fmtK(c.prev)}</span><br><span class="${estouro?'down':'up'}" style="font-size:11px">${estouro?'+':''}${fmtK(Math.abs(saldo))} ${estouro?'acima':'saldo'}</span>`}</div>
-            ${gest?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-              <button class="mini-btn" onclick="openEditOrcamento(${p.id},'${etapa}',${i})">Editar orçado</button>
-              <button class="mini-btn" onclick="openGasto(${p.id},'${etapa}',${i})">+ Lançar gasto</button>
-              <button class="mini-btn mini-btn-danger" onclick="removeCategoriaFin(${p.id},'${etapa}',${i})">Remover</button>
+            ${(podeEditFin||podeExclFin)?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              ${podeEditFin?`<button class="mini-btn" onclick="openEditOrcamento(${p.id},'${etapa}',${i})">Editar orçado</button>
+              <button class="mini-btn" onclick="openGasto(${p.id},'${etapa}',${i})">+ Lançar gasto</button>`:''}
+              ${podeExclFin?`<button class="mini-btn mini-btn-danger" onclick="removeCategoriaFin(${p.id},'${etapa}',${i})">Remover</button>`:''}
             </div>`:''}
           </div>`;
         }).join(''):`<div class="fin-row" style="grid-template-columns:1fr"><span class="mut" style="font-size:12px">Nenhuma categoria cadastrada ainda.</span></div>`}
-        ${gest?`<div style="text-align:right;margin-top:8px"><button class="btn" style="font-size:12px;padding:8px 14px" onclick="openCategoria(${p.id},'${etapa}')">+ Nova categoria em ${etapa}</button></div>`:''}
+        ${podeEditFin?`<div style="text-align:right;margin-top:8px"><button class="btn" style="font-size:12px;padding:8px 14px" onclick="openCategoria(${p.id},'${etapa}')">+ Nova categoria em ${etapa}</button></div>`:''}
       </div>`;
-    }).join(''):`<div class="empty">Nenhuma etapa adicionada ao cronograma ainda.${gest?' Adicione etapas na aba <b>Cronograma</b> para lançar valores.':''}</div>`}
+    }).join(''):`<div class="empty">Nenhuma etapa adicionada ao cronograma ainda.${podeEditar(p.id,'cronograma')?' Adicione etapas na aba <b>Cronograma</b> para lançar valores.':''}</div>`}
   </div>
   <div class="card">
     <h3>Resumo por categoria</h3>
@@ -183,7 +183,8 @@ function renderFin(p){
 
 function renderCrono(p){
   const t=ensureCronograma(p.id);
-  const gest=ROLE==='gestor';
+  const podeEditCrono=podeEditar(p.id,'cronograma'), podeExclCrono=podeExcluir(p.id,'cronograma');
+  const temAcoes=podeEditCrono||podeExclCrono;
   // projetos "Apenas Relatórios" usam um cronograma sem datas/prazo — só
   // nome da etapa e a barra de progresso (ver openEtapaSimples/editEtapaSimples
   // em js/cronograma.js), já que esse tipo de projeto não acompanha prazos
@@ -194,27 +195,27 @@ function renderCrono(p){
         <b style="flex:0 0 160px">${x.nome}</b>
         <div class="gbar" style="flex:1"><i style="width:${x.av}%"></i></div>
         <span class="fin-pct" style="flex:0 0 44px;text-align:right">${x.av}%</span>
-        ${gest?`<div style="display:flex;gap:6px;flex:0 0 auto">
-          <button class="mini-btn" onclick="editEtapaSimples(${p.id},'${x.id}')">Editar</button>
-          <button class="mini-btn mini-btn-danger" onclick="removeCronogramaEtapa(${p.id},'${x.id}','${x.nome.replace(/'/g,"\\'")}')">Remover</button>
+        ${temAcoes?`<div style="display:flex;gap:6px;flex:0 0 auto">
+          ${podeEditCrono?`<button class="mini-btn" onclick="editEtapaSimples(${p.id},'${x.id}')">Editar</button>`:''}
+          ${podeExclCrono?`<button class="mini-btn mini-btn-danger" onclick="removeCronogramaEtapa(${p.id},'${x.id}','${x.nome.replace(/'/g,"\\'")}')">Remover</button>`:''}
         </div>`:''}
-      </div>`).join(''):`<div class="empty">Nenhuma etapa adicionada ainda.${gest?' Clique em <b>+ Nova etapa</b>.':''}</div>`}
+      </div>`).join(''):`<div class="empty">Nenhuma etapa adicionada ainda.${podeEditCrono?' Clique em <b>+ Nova etapa</b>.':''}</div>`}
     </div>`;
   }
   return `<div class="card"><h3>Cronograma detalhado</h3>
     <p class="card-note">O avanço de cada etapa é atualizado automaticamente pelos relatórios semanais vinculados</p>
     ${t.length?`<div class="gantt"><table>
-    <thead><tr><th style="width:220px">Etapa</th><th>Início</th><th>Término</th><th style="width:90px">Avanço</th><th style="width:340px">Progresso</th>${gest?'<th style="width:90px"></th>':''}</tr></thead>
+    <thead><tr><th style="width:220px">Etapa</th><th>Início</th><th>Término</th><th style="width:90px">Avanço</th><th style="width:340px">Progresso</th>${temAcoes?'<th style="width:90px"></th>':''}</tr></thead>
     <tbody>${t.map(x=>`<tr>
       <td><b>${x.nome}</b></td><td>${x.ini||'—'}</td><td>${x.fim||'—'}</td>
       <td><span class="fin-pct">${x.av}%</span></td>
       <td class="bar-cell"><div class="gbar"><i style="width:${x.av}%"></i></div></td>
-      ${gest?`<td style="text-align:right"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
-        <button class="mini-btn" onclick="editEtapa(${p.id},'${x.id}')">Editar</button>
-        <button class="mini-btn mini-btn-danger" onclick="removeCronogramaEtapa(${p.id},'${x.id}','${x.nome.replace(/'/g,"\\'")}')">Remover</button>
+      ${temAcoes?`<td style="text-align:right"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        ${podeEditCrono?`<button class="mini-btn" onclick="editEtapa(${p.id},'${x.id}')">Editar</button>`:''}
+        ${podeExclCrono?`<button class="mini-btn mini-btn-danger" onclick="removeCronogramaEtapa(${p.id},'${x.id}','${x.nome.replace(/'/g,"\\'")}')">Remover</button>`:''}
       </div></td>`:''}
     </tr>`).join('')}</tbody></table></div>`
-    :`<div class="empty">Nenhuma etapa adicionada a este cronograma ainda.${gest?' Clique em <b>+ Nova etapa</b>.':''}</div>`}
+    :`<div class="empty">Nenhuma etapa adicionada a este cronograma ainda.${podeEditCrono?' Clique em <b>+ Nova etapa</b>.':''}</div>`}
   </div>`;
 }
 
