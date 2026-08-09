@@ -41,7 +41,11 @@ then open `http://localhost:8934/login.html`. Must be served over `http://` — 
 
 ## Documentation
 
-- [docs/guia-administracao.md](docs/guia-administracao.md) — admin guide (Portuguese), covers what isn't doable from the site itself (password resets, account removal, emergency data access).
+All in Portuguese, matching the site's own language:
+
+- [docs/guia-administracao.md](docs/guia-administracao.md) — admin guide, covers what isn't doable from the site itself (password resets, account removal, emergency data access).
+- [docs/guia-funcionarios.md](docs/guia-funcionarios.md) — employee guide, covers every action available depending on granted per-project/per-module permissions.
+- [docs/guia-clientes.md](docs/guia-clientes.md) — client guide, covers the (mostly read-only) view of a project's progress, reports, schedule, and budget.
 - [backend/README.md](backend/README.md) — Apps Script backend setup and API contract.
 
 ## License
