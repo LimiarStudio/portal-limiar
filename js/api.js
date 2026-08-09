@@ -28,7 +28,7 @@ const firestoreDb = () => firebase.firestore();
 
 // backend enxuto (Fase 5), já em produção desde a Fase 12 — só usado por
 // Api.images.*/Api.rdos.gerarPdf, os 2 únicos ops que sobraram nele.
-const API_URL = 'https://script.google.com/macros/s/AKfycbwz-gJ4cN6Ay68Fm1ywvyh6A95JtxIN-PKYdH-vViP3akQeuBBAfqXl56K0vjcbCbP0Yg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwfB2phyD4BekZfMX9-JD6yNNkk13cWP2yw9hTWlvSj0M3dqjK-JFizM027pU5LXUk0BQ/exec';
 
 async function apiCall(collection, op, args){
   let idToken = null;
