@@ -98,33 +98,40 @@ function renderRDO(p){
     </a>`).join('')+`</div>`;
 }
 
+// badge de % usado nas linhas de categoria — categoria com orçado 0 não tem
+// "% do orçado" que faça sentido (é gasto avulso, sem orçamento pra comparar),
+// então mostra um traço no lugar em vez de 0%/100% enganoso
+const finPctBadge = (pct, estouro) => pct===null
+  ? `<span class="fin-pct" style="background:var(--bg2);color:var(--mut)">—</span>`
+  : `<span class="fin-pct ${estouro?'over':''}">${pct}%</span>`;
 function renderFin(p){
   const etapas=etapasFinanceiras(p.id);
-  const tp=finTotalPrevisto(p.id), tr=finTotalRealizado(p.id);
+  const tp=finTotalPrevisto(p.id), tr=finTotalRealizado(p.id), trOrc=finTotalRealizadoOrcado(p.id);
   const totais=categoriaTotals(p.id);
   const gest=ROLE==='gestor';
   return `
   <div class="grid-3">
     ${kpi('Total orçado',fmtK(tp))}
     ${kpi('Total gasto',fmtK(tr),null,null,`${tp?Math.round(tr/tp*100):0}% do orçado`)}
-    ${kpi('Saldo a gastar',fmtK(tp-tr),null,null,(tr<=tp?'dentro do orçamento':'ACIMA do orçamento'))}
+    ${kpi('Saldo a gastar',fmtK(tp-trOrc),null,null,(trOrc<=tp?'dentro do orçamento':'ACIMA do orçamento'))}
   </div>
   <div class="card">
     <h3>Orçado × Gasto por etapa e categoria</h3>
-    <p class="card-note">As etapas vêm do cronograma (fixas). O orçado de cada etapa é a soma das suas categorias.</p>
+    <p class="card-note">As etapas vêm do cronograma (fixas). O orçado de cada etapa é a soma das suas categorias. Categorias sem orçamento definido entram no total gasto, mas não no saldo.</p>
     <div class="fin-legend"><span><span class="dot" style="background:#94a3b8"></span>Orçado</span><span><span class="dot" style="background:var(--accent)"></span>Gasto</span></div>
     ${etapas.length?etapas.map(etapa=>{
-      const cs=categorias(p.id,etapa), ep=etapaPrevisto(p.id,etapa), er=etapaRealizado(p.id,etapa);
+      const cs=categorias(p.id,etapa), ep=etapaPrevisto(p.id,etapa), er=etapaRealizado(p.id,etapa), erOrc=etapaRealizadoOrcado(p.id,etapa);
       return `<div class="fin-etapa">
         <div class="fin-etapa-head">
           <h4>${etapa}</h4>
           <div style="display:flex;align-items:center;gap:12px">
             <span class="tot"><b>${fmtK(er)}</b> de ${fmt(ep)} orçado</span>
-            <span class="fin-pct ${er>ep?'over':''}">${ep?Math.round(er/ep*100):0}%</span>
+            ${finPctBadge(ep?Math.round(erOrc/ep*100):0, erOrc>ep)}
           </div>
         </div>
         ${cs.length?cs.map((c,i)=>{
-          const real=realizado(c), saldo=c.prev-real, estouro=real>c.prev, pct=c.prev?Math.round(real/c.prev*100):(real?100:0);
+          const real=realizado(c), saldo=c.prev-real, semOrcamento=c.prev===0;
+          const estouro=!semOrcamento && real>c.prev, pct=semOrcamento?null:Math.round(real/c.prev*100);
           // a barra maior (orçado ou gasto, o que for maior) é sempre a referência cheia —
           // as cores não mudam com estouro, o badge de % já avisa quando passou do orçado
           const localMax=Math.max(c.prev,real,1);
@@ -132,14 +139,15 @@ function renderFin(p){
             <div>${c.nome}<br>
               ${(c.lanc&&c.lanc.length)?`<button class="linklike" onclick="verLanc(${p.id},'${etapa}',${i})">${c.lanc.length} lançamento(s)</button>`:`<span class="mut" style="font-size:11px">sem gastos</span>`}</div>
             <div style="display:flex;align-items:center;gap:14px">
-              <span class="fin-pct ${estouro?'over':''}">${pct}%</span>
+              ${finPctBadge(pct, estouro)}
               <div class="fin-bars" style="flex:1">
                 <div class="fin-bar bar-prev"><i style="width:${c.prev/localMax*100}%"></i></div>
                 <div class="fin-bar bar-real"><i style="width:${real/localMax*100}%"></i></div>
               </div>
             </div>
-            <div class="num" style="font-size:12px"><b>${fmtK(real)}</b><br><span class="mut">de ${fmtK(c.prev)}</span><br>
-              <span class="${estouro?'down':'up'}" style="font-size:11px">${estouro?'+':''}${fmtK(Math.abs(saldo))} ${estouro?'acima':'saldo'}</span></div>
+            <div class="num" style="font-size:12px"><b>${fmtK(real)}</b><br>${semOrcamento
+              ?`<span class="mut">sem orçamento</span>`
+              :`<span class="mut">de ${fmtK(c.prev)}</span><br><span class="${estouro?'down':'up'}" style="font-size:11px">${estouro?'+':''}${fmtK(Math.abs(saldo))} ${estouro?'acima':'saldo'}</span>`}</div>
             ${gest?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
               <button class="mini-btn" onclick="openEditOrcamento(${p.id},'${etapa}',${i})">Editar orçado</button>
               <button class="mini-btn" onclick="openGasto(${p.id},'${etapa}',${i})">+ Lançar gasto</button>
@@ -155,18 +163,19 @@ function renderFin(p){
     <h3>Resumo por categoria</h3>
     <p class="card-note">Soma de cada categoria em todas as etapas do projeto — quanto foi orçado e gasto no total, independente da etapa.</p>
     ${totais.length?totais.map(t=>{
-      const estouro=t.real>t.prev, pct=t.prev?Math.round(t.real/t.prev*100):(t.real?100:0);
+      const semOrcamento=t.prev===0;
+      const estouro=!semOrcamento && t.real>t.prev, pct=semOrcamento?null:Math.round(t.real/t.prev*100);
       const localMax=Math.max(t.prev,t.real,1);
       return `<div class="fin-row" style="grid-template-columns:190px 1fr 120px">
         <div>${t.nome}</div>
         <div style="display:flex;align-items:center;gap:14px">
-          <span class="fin-pct ${estouro?'over':''}">${pct}%</span>
+          ${finPctBadge(pct, estouro)}
           <div class="fin-bars" style="flex:1">
             <div class="fin-bar bar-prev"><i style="width:${t.prev/localMax*100}%"></i></div>
             <div class="fin-bar bar-real"><i style="width:${t.real/localMax*100}%"></i></div>
           </div>
         </div>
-        <div class="num" style="font-size:12px"><b>${fmtK(t.real)}</b><br><span class="mut">de ${fmtK(t.prev)}</span></div>
+        <div class="num" style="font-size:12px"><b>${fmtK(t.real)}</b><br><span class="mut">${semOrcamento?'sem orçamento':'de '+fmtK(t.prev)}</span></div>
       </div>`;
     }).join(''):`<div class="mut" style="font-size:12px">Nenhum lançamento ainda.</div>`}
   </div>`;

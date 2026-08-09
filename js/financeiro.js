@@ -23,10 +23,10 @@ async function openCategoria(pid, etapaPreset){
     <div class="form-grid">
       <div class="fg"><label>Etapa</label>
         <select id="cat-etapa" onchange="updateCategoriaOptions(${pid})">${etapas.map(e=>`<option ${e===etapaPreset?'selected':''}>${e}</option>`).join('')}</select></div>
-      <div class="fg"><label>Valor orçado (R$)</label><input id="cat-val" type="number" min="1" step="100" placeholder="0,00"></div>
+      <div class="fg"><label>Valor orçado (R$)</label><input id="cat-val" type="number" min="0" step="100" placeholder="0,00"></div>
       <div class="fg full"><label>Categoria</label><select id="cat-nome"></select></div>
     </div>
-    <p class="card-note" style="margin-top:14px">As categorias são padronizadas por etapa — se a etapa que você precisa ainda não existe, cadastre-a primeiro no cronograma.</p>
+    <p class="card-note" style="margin-top:14px">As categorias são padronizadas por etapa — se a etapa que você precisa ainda não existe, cadastre-a primeiro no cronograma. Orçado 0 registra os gastos normalmente, mas eles não contam no saldo do projeto.</p>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveCategoria(${pid})">Salvar categoria</button>`);
   updateCategoriaOptions(pid);
@@ -34,7 +34,7 @@ async function openCategoria(pid, etapaPreset){
 async function saveCategoria(pid){
   const etapa=$('#cat-etapa').value, val=+$('#cat-val').value, nome=$('#cat-nome').value;
   if(!nome){alert('Não há categorias padrão disponíveis para esta etapa.');return;}
-  if(!(val>0)){alert('Informe um valor orçado maior que zero.');return;}
+  if(!(val>=0)){alert('Informe um valor orçado válido.');return;}
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   try{

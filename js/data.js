@@ -47,8 +47,13 @@ const etapasFinanceiras = pid => ensureCronograma(pid).map(e=>e.nome);
 const categorias = (pid,etapa) => ensureFinEtapa(pid,etapa);
 const etapaPrevisto = (pid,etapa) => categorias(pid,etapa).reduce((a,c)=>a+c.prev,0);
 const etapaRealizado = (pid,etapa) => categorias(pid,etapa).reduce((a,c)=>a+realizado(c),0);
+// categoria com orçado 0 é de propósito (registrar gasto avulso sem contar
+// contra o orçamento de nada) — etapaRealizadoOrcado/finTotalRealizadoOrcado
+// somam só o gasto de categorias COM orçamento, base do "Saldo a gastar"
+const etapaRealizadoOrcado = (pid,etapa) => categorias(pid,etapa).filter(c=>c.prev>0).reduce((a,c)=>a+realizado(c),0);
 const finTotalPrevisto = pid => etapasFinanceiras(pid).reduce((a,e)=>a+etapaPrevisto(pid,e),0);
 const finTotalRealizado = pid => etapasFinanceiras(pid).reduce((a,e)=>a+etapaRealizado(pid,e),0);
+const finTotalRealizadoOrcado = pid => etapasFinanceiras(pid).reduce((a,e)=>a+etapaRealizadoOrcado(pid,e),0);
 // custo total por categoria, somando todas as etapas em que ela aparece
 const categoriaTotals = pid => {
   const totals = {};
