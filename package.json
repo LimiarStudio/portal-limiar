@@ -1,7 +1,7 @@
 {
   "name": "projeto_limiar",
   "version": "1.0.0",
-  "description": "",
+  "description": "Portal Limiar — construction project management site (RDOs, cronograma, financeiro) for Studio Limiar.",
   "main": "serve.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,8 +11,8 @@
     "url": "git+https://github.com/LimiarStudio/portal-limiar.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "André Santos Gomes",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/LimiarStudio/portal-limiar/issues"

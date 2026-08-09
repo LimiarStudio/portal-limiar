@@ -41,6 +41,6 @@ Resposta é sempre HTTP 200 (Web Apps do Apps Script não mandam outros status) 
 `doGet` é um healthcheck puro (`{ok:true, service:...}`) — sem acesso a dado nenhum.
 
 Só existem 3 operações, espelhando `Db.js`:
-- `images.saveDataUrl(dataUrl, projectId, kind, extra?)` — `kind` é `"capa"` ou `"rdo-foto"` (com `extra:{n,index}`)
+- `images.saveDataUrl(dataUrl, projectId, kind, extra?)` — `kind` é `"capa"`, `"rdo-foto"` (com `extra:{n,index}`) ou `"lancamento-foto"` (comprovante de um gasto do financeiro)
 - `images.remove(fileId)`
 - `rdos.gerarPdf(projectNome, relatorio)` — `relatorio` já no formato de banco (o cliente já leu isso do Firestore), gera/substitui o PDF em `rdoPdfs/<projectId>/relatorio-<n>.pdf`
