@@ -37,7 +37,11 @@ function doPost(e){
     var uid = verificarIdToken_(body.idToken);
     if(!uid) return jsonResponse_({ok:false, error:'Não autenticado — faça login novamente.'});
 
-    var result = db[collection][op].apply(null, args);
+    // uid de quem chamou (já verificado acima) vai sempre como ÚLTIMO
+    // argumento, além dos que o cliente mandou — nenhum op existente antes
+    // de RepoUsers.remover declara esse parâmetro extra, então é ignorado
+    // por eles sem efeito nenhum; RepoUsers.remover é o único que lê
+    var result = db[collection][op].apply(null, args.concat([uid]));
     return jsonResponse_({ok:true, data: result===undefined ? null : result});
   }catch(err){
     return jsonResponse_({ok:false, error: (err && err.message) || String(err)});

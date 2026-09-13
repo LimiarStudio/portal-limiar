@@ -16,15 +16,17 @@ Este guia é para você, administradora do Portal Limiar. Ele cobre só as coisa
 Praticamente tudo do dia a dia já está no próprio Portal Limiar, sem precisar de nada técnico:
 
 - Criar, editar e arquivar projetos
-- Criar um usuário novo e definir a senha inicial dele — **Admin → Usuários**
-- Dar ou tirar acesso de alguém a um projeto específico — dentro do projeto, **Usuários e Permissões**
+- Criar um usuário novo e definir a senha inicial dele, ou **encerrar a conta dele de vez** — **Admin → Usuários**
+- Dar ou tirar acesso de alguém a um projeto específico (sem mexer na conta dele) — dentro do projeto, **Usuários e Permissões**
 - Editar cronograma, financeiro, relatórios semanais (RDOs) e o catálogo de etapas/categorias de cada projeto
+
+⚠️ **"Remover" em Admin → Usuários encerra o login da pessoa de vez** — ela não consegue mais entrar, e pra dar acesso de novo é preciso recriar a conta do zero e reconceder as permissões em cada projeto (não tem como desfazer automaticamente). Se você só quer tirar o acesso de alguém a UM projeto específico (mantendo a conta dele pros outros projetos), use "Remover acesso ao projeto" dentro de **Usuários e Permissões** daquele projeto, não o Admin → Usuários.
 
 Se a tarefa que você precisa fazer está nessa lista, não precisa deste guia — é só usar o site normalmente.
 
-## 2. Redefinir a senha de alguém (ou encerrar uma conta)
+## 2. Redefinir a senha de alguém (ou limpar contas presas)
 
-**Quando isso é necessário:** alguém esqueceu a senha (o site não tem "esqueci minha senha" de propósito — só a administradora define senha de outra pessoa) ou alguém saiu da equipe e a conta precisa ser encerrada de vez, liberando o e-mail.
+**Quando isso é necessário:** alguém esqueceu a senha (o site não tem "esqueci minha senha" de propósito — só a administradora define senha de outra pessoa). Encerrar uma conta de vez já é feito direto pelo site (Admin → Usuários → Remover) — não precisa mais disto pra isso; o script local só entra se algo ficar "preso" (ex.: um e-mail continua bloqueado mesmo depois de removido, por alguma falha na hora).
 
 Isso não dá pra fazer pelo site — precisa rodar um comando no computador. Uma vez configurado, leva menos de um minuto toda vez que precisar.
 
@@ -56,11 +58,11 @@ Isso não dá pra fazer pelo site — precisa rodar um comando no computador. Um
    ```
    Troque `email-da-pessoa@exemplo.com` pelo e-mail de login da pessoa, e `NovaSenha123` pela nova senha (mínimo 6 caracteres). Avise a pessoa da nova senha por um canal seguro (não por onde qualquer um veria).
 
-5. Pra **encerrar uma conta de vez** (a pessoa saiu da equipe):
+5. Se um e-mail continuar bloqueado mesmo depois de você ter removido a pessoa pelo site (situação rara — normalmente o próprio "Remover" já resolve), rode:
    ```
-   node gerenciar-usuario.js remover email-da-pessoa@exemplo.com
+   node gerenciar-usuario.js limpar-orfaos
    ```
-   Isso apaga a conta por completo e libera o e-mail. Se você só quer tirar o acesso dela dos projetos (sem apagar a conta), isso já é feito pelo próprio site, em **Admin → Usuários → Remover**.
+   Isso lista e apaga de vez qualquer conta de login que não tem mais nenhum acesso no site, liberando o e-mail. Sempre mostra a lista antes de apagar.
 
 ## 3. Emergência: olhar os dados direto
 

@@ -162,9 +162,14 @@ Api.users = {
     await firestoreDb().doc('users/'+uid).update(seguro);
     return Api.users.buscar(uid);
   },
-  // revoga acesso na hora (some da lista, perde toda permissão de projeto) —
-  // NÃO apaga a conta do Firebase Auth de verdade nem libera o e-mail pra
-  // reuso; isso é o script local (offboarding completo)
+  // revoga acesso na hora (some da lista, perde toda permissão de projeto)
+  // E encerra a conta de login de vez (Firebase Auth), via o Apps Script —
+  // é o único ponto do backend enxuto com permissão pra apagar login de
+  // outra pessoa (ver Repo/Users.js, autorização por ADMIN_UID). Revoga o
+  // Firestore PRIMEIRO (o corte de acesso é a parte mais urgente) — se o
+  // passo do Apps Script falhar depois, o acesso já foi revogado mesmo
+  // assim; só a conta de login em si fica pra trás, recuperável rodando
+  // scripts/firebase-admin/gerenciar-usuario.js limpar-orfaos.
   remover: async uid => {
     const projSnap = await firestoreDb().collection('projects').get();
     const batch = firestoreDb().batch();
@@ -175,6 +180,11 @@ Api.users = {
       if(permDoc.exists) batch.delete(permRef);
     }
     await batch.commit();
+    try{
+      await apiCall('users','remover',[uid]);
+    }catch(e){
+      throw new Error('Acesso revogado, mas não foi possível encerrar a conta de login: '+e.message+' (rode "gerenciar-usuario.js limpar-orfaos" depois pra terminar isso).');
+    }
   },
 };
 

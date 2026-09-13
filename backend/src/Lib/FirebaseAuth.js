@@ -31,10 +31,13 @@ function verificarIdToken_(idToken){
 }
 
 // rodar UMA VEZ à mão pelo editor do Apps Script (Executar) — só existe pra
-// disparar a tela de autorização do escopo script.external_request (usado
-// por UrlFetchApp acima), que o deploy via clasp/CLI não passa por sozinho.
-// Sem efeito nenhum além de conceder essa permissão pra conta que a rodar;
-// seguro de deixar aqui depois.
+// disparar a tela de autorização dos escopos declarados em appsscript.json
+// (oauthScopes), que o deploy via clasp/CLI não passa por sozinho. A tela de
+// consentimento cobre TODOS os escopos do manifesto de uma vez (não só o que
+// esta função toca), então rodar isto de novo depois de QUALQUER mudança em
+// oauthScopes (ex.: ao adicionar identitytoolkit pra RepoUsers.remover) já
+// é suficiente. Sem efeito nenhum além de conceder essa permissão pra conta
+// que a rodar; seguro de deixar aqui depois.
 function autorizarUrlFetch_(){
   UrlFetchApp.fetch('https://www.google.com', {muteHttpExceptions: true});
 }

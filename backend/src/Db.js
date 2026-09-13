@@ -15,5 +15,6 @@ function Db(){
     images: LibImages,
     rdos: RepoRdos,
     archive: RepoArquivo,
+    users: RepoUsers,
   };
 }

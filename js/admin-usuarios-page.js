@@ -65,7 +65,7 @@ async function salvarEdicaoUsuario(id){
   }
 }
 async function removerUsuario(id, nome){
-  if(!confirm(`Remover o acesso de "${nome}"? Ele perde acesso a todos os projetos imediatamente. A conta em si só é encerrada de vez pelo script local (gerenciar-usuario.js).`)) return;
+  if(!confirm(`Remover "${nome}"? Isso encerra a conta de login dele de vez — perde acesso a todos os projetos imediatamente e não consegue mais entrar com esse e-mail e senha. Pra dar acesso de novo no futuro, é preciso recriar a conta do zero (o e-mail fica livre pra reuso) e reconceder as permissões em cada projeto — não há como restaurar o acesso antigo automaticamente.`)) return;
   try{
     await Api.users.remover(id);
     usuariosSistema=usuariosSistema.filter(x=>x.id!==id);
@@ -80,7 +80,7 @@ function renderAdminUsuariosContent(){
   $('#content').innerHTML=`
   <div class="card">
     <h3>Usuários do sistema</h3>
-    <p class="card-note">O administrador tem acesso completo e fixo a tudo — não é um papel que se escolhe, e não pode ser removido nem alterado aqui (nem a própria senha dele — isso é feito fora do site). Todo outro usuário tem acesso a cada projeto de acordo com o que for definido em Usuários e Permissões, dentro do próprio projeto. "Remover" aqui revoga o acesso na hora; encerrar a conta de vez (e liberar o e-mail) é um passo à parte, pelo script local.</p>
+    <p class="card-note">O administrador tem acesso completo e fixo a tudo — não é um papel que se escolhe, e não pode ser removido nem alterado aqui (nem a própria senha dele — isso é feito fora do site). Todo outro usuário tem acesso a cada projeto de acordo com o que for definido em Usuários e Permissões, dentro do próprio projeto. "Remover" aqui encerra a conta de login de vez (libera o e-mail pra reuso) — não é só uma revogação de acesso, e não tem como desfazer automaticamente.</p>
     <table>
       <thead><tr><th>Nome</th><th>E-mail</th><th></th></tr></thead>
       <tbody>
