@@ -56,7 +56,7 @@ function montarPdfDeRelatorio_(relatorio, nomeProjeto){
   inserirLogo_(body);
   inserirFaixaTitulo_(body, relatorio, nomeProjeto);
 
-  const infoPar = body.appendParagraph('Semana de '+relatorio.semanaInicio+' a '+relatorio.semanaFim+'   ·   Responsável: '+relatorio.resp);
+  const infoPar = body.appendParagraph('Semana de '+formatarDataBr_(relatorio.semanaInicio)+' a '+formatarDataBr_(relatorio.semanaFim)+'   ·   Responsável: '+relatorio.resp);
   estilizarParagrafo_(infoPar, {tamanho:10, cor:COR_MUTED, antes:12, depois:22});
 
   tituloSecao_(body, 'Mão de obra');
@@ -95,6 +95,16 @@ function montarPdfDeRelatorio_(relatorio, nomeProjeto){
   pdfBlob.setName('relatorio-'+relatorio.n+'.pdf');
   DriveApp.getFileById(doc.getId()).setTrashed(true);
   return pdfBlob;
+}
+
+// o relatório vem do Firestore como veio salvo por js/api.js (semanaInicio/
+// semanaFim em ISO "AAAA-MM-DD", formato de <input type="date"> — ver o
+// comentário de rdoMemoriaParaDb lá) — sem isso, o PDF saía com a data no
+// formato ISO em vez de brasileiro (dd/mm/aaaa)
+function formatarDataBr_(iso){
+  if(!iso) return '';
+  const partes = String(iso).split('-');
+  return partes.length===3 ? partes[2]+'/'+partes[1]+'/'+partes[0] : iso;
 }
 
 // --- construção visual ---------------------------------------------------
@@ -300,7 +310,12 @@ function appendRichText_(container, texto){
     partes.forEach(function(parte){
       const negrito = /^\*\*(.+)\*\*$/.exec(parte);
       const run = elemento.appendText(negrito ? negrito[1] : parte);
-      if(negrito) run.setBold(true);
+      // sempre define os dois estados (nunca só o "true") — o Docs herda o
+      // negrito do texto estilizado anterior no documento (ex: o título de
+      // seção em negrito logo acima) pro primeiro texto novo inserido,
+      // então deixar "false" implícito fazia o primeiro bloco depois de
+      // qualquer título sair em negrito sem que nada aqui tivesse pedido isso
+      run.setBold(!!negrito);
     });
   });
 }
