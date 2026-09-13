@@ -52,8 +52,8 @@ Mostra as etapas da obra com datas de início/término e uma barra de progresso 
 Um panorama do orçamento da obra:
 
 - Três números no topo: **Total orçado**, **Total gasto** e **Saldo a gastar**.
-- O detalhamento por etapa e categoria, com barras comparando orçado × gasto e a porcentagem já utilizada de cada categoria.
-- Um resumo consolidado por categoria no fim da página, somando todas as etapas.
+- O detalhamento por etapa, com barras comparando orçado × gasto e a porcentagem já utilizada — o orçamento é definido por etapa inteira, e as categorias dentro dela mostram só o gasto.
+- Um resumo consolidado por categoria no fim da página, somando o gasto de cada uma em todas as etapas.
 
 Categorias que aparecem com um traço (—) no lugar de uma porcentagem são categorias sem orçamento definido — usadas pra registrar um gasto avulso que não é descontado do Saldo a gastar, mas ainda soma no Total gasto.
 

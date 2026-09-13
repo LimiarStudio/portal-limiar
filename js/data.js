@@ -34,37 +34,38 @@ const ensureCronograma = pid => {
   if(!cronogramas[pid]) cronogramas[pid] = [];
   return cronogramas[pid];
 };
-// idem para a lista de categorias de uma etapa — só garante que o array exista.
-// As categorias em si NÃO são pré-preenchidas: ficam disponíveis no catálogo padrão
-// (categoriasPadrao) para serem adicionadas sob demanda em "+ Nova categoria".
+// idem pro financeiro de uma etapa — só garante que exista. "prev" (orçamento)
+// vive na ETAPA (editado direto no Financeiro — ver openEditOrcamentoEtapa em
+// js/financeiro.js); categorias começam sem categorias nenhuma, adicionadas
+// sob demanda em "+ Nova categoria" (nomes vêm do catálogo padrão, categoriasPadrao)
 const ensureFinEtapa = (pid,etapa) => {
   if(!financeiro[pid]) financeiro[pid] = {};
-  if(!financeiro[pid][etapa]) financeiro[pid][etapa] = [];
+  if(!financeiro[pid][etapa]) financeiro[pid][etapa] = {prev:0, categorias:[]};
   return financeiro[pid][etapa];
 };
 // etapas financeiras fixas do projeto = nomes das etapas do cronograma
 const etapasFinanceiras = pid => ensureCronograma(pid).map(e=>e.nome);
-const categorias = (pid,etapa) => ensureFinEtapa(pid,etapa);
-const etapaPrevisto = (pid,etapa) => categorias(pid,etapa).reduce((a,c)=>a+c.prev,0);
+const categorias = (pid,etapa) => ensureFinEtapa(pid,etapa).categorias;
+const etapaPrevisto = (pid,etapa) => ensureFinEtapa(pid,etapa).prev;
 const etapaRealizado = (pid,etapa) => categorias(pid,etapa).reduce((a,c)=>a+realizado(c),0);
-// categoria com orçado 0 é de propósito (registrar gasto avulso sem contar
+// etapa com orçamento 0 é de propósito (registrar gasto avulso sem contar
 // contra o orçamento de nada) — etapaRealizadoOrcado/finTotalRealizadoOrcado
-// somam só o gasto de categorias COM orçamento, base do "Saldo a gastar"
-const etapaRealizadoOrcado = (pid,etapa) => categorias(pid,etapa).filter(c=>c.prev>0).reduce((a,c)=>a+realizado(c),0);
+// somam só o gasto de etapas COM orçamento, base do "Saldo a gastar"
+const etapaRealizadoOrcado = (pid,etapa) => etapaPrevisto(pid,etapa)>0 ? etapaRealizado(pid,etapa) : 0;
 const finTotalPrevisto = pid => etapasFinanceiras(pid).reduce((a,e)=>a+etapaPrevisto(pid,e),0);
 const finTotalRealizado = pid => etapasFinanceiras(pid).reduce((a,e)=>a+etapaRealizado(pid,e),0);
 const finTotalRealizadoOrcado = pid => etapasFinanceiras(pid).reduce((a,e)=>a+etapaRealizadoOrcado(pid,e),0);
-// custo total por categoria, somando todas as etapas em que ela aparece
+// gasto total por categoria, somando todas as etapas em que ela aparece —
+// categoria não carrega orçamento (isso é da etapa), só o gasto mesmo
 const categoriaTotals = pid => {
   const totals = {};
   etapasFinanceiras(pid).forEach(etapa=>{
     categorias(pid,etapa).forEach(c=>{
-      if(!totals[c.nome]) totals[c.nome] = {nome:c.nome, prev:0, real:0};
-      totals[c.nome].prev += c.prev;
-      totals[c.nome].real += realizado(c);
+      if(totals[c.nome]===undefined) totals[c.nome] = 0;
+      totals[c.nome] += realizado(c);
     });
   });
-  return Object.values(totals).sort((a,b)=>b.prev-a.prev);
+  return Object.keys(totals).map(nome=>({nome, real:totals[nome]})).sort((a,b)=>b.real-a.real);
 };
 
 // progresso geral do projeto = média do avanço de cada etapa do cronograma,

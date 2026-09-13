@@ -478,9 +478,11 @@ Api.cronograma = {
   },
 };
 
-/* --- financeiro: só lanc[].data (BR <-> ISO) muda. Documento único por
-   projeto, mesmo padrão de leitura-modificação-escrita do cronograma acima
-   (removerLancamento continua por índice, não por id — mesma ordem sempre,
+/* --- financeiro: só lanc[].data (BR <-> ISO) muda de resto. Documento único
+   por projeto ("financeiro/{pid}"), uma chave por etapa —
+   {prev, categorias:[{nome, lanc:[...]}]} — mesmo padrão de leitura-
+   modificação-escrita do cronograma acima (removerLancamento continua por
+   índice, não por id — mesma ordem sempre,
    já que lanc[] nunca é reordenado). --- */
 // foto do lançamento é opcional e, como a de um RDO, guarda só o fileId no
 // banco — fotoDbParaMemoria() (mais abaixo) já resolve fileId -> url lh3
@@ -492,10 +494,15 @@ function lancMemoriaParaDb(l){
   if(l.foto && l.foto.fileId) out.fotoFileId = l.foto.fileId;
   return out;
 }
-function categoriaFinDbParaMemoria(c){ return {nome:c.nome, prev:c.prev, lanc:(c.lanc||[]).map(lancDbParaMemoria)}; }
+// "prev" (orçamento) vive na ETAPA, não na categoria — categoria só agrupa
+// lançamentos de gasto dentro da etapa (ver migração de schema, Fase 13:
+// scripts/firebase-admin/migrar_orcamento_por_etapa.js já rodou uma vez em
+// produção pra somar o prev antigo de cada categoria no prev novo da etapa)
+function categoriaFinDbParaMemoria(c){ return {nome:c.nome, lanc:(c.lanc||[]).map(lancDbParaMemoria)}; }
+function etapaFinDbParaMemoria(e){ return {prev:(e&&e.prev)||0, categorias:((e&&e.categorias)||[]).map(categoriaFinDbParaMemoria)}; }
 function financeiroDocDbParaMemoria(doc){
   const out = {};
-  Object.keys(doc||{}).forEach(etapa=>{ out[etapa] = (doc[etapa]||[]).map(categoriaFinDbParaMemoria); });
+  Object.keys(doc||{}).forEach(etapa=>{ out[etapa] = etapaFinDbParaMemoria(doc[etapa]); });
   return out;
 }
 async function financeiroDocFs_(pid){
@@ -508,29 +515,28 @@ async function salvarFinanceiroDocFs_(pid, doc){
 }
 Api.financeiro = {
   tudo: async pid => financeiroDocDbParaMemoria(await financeiroDocFs_(pid)),
-  porEtapa: async (pid, etapa) => ((await financeiroDocFs_(pid))[etapa]||[]).map(categoriaFinDbParaMemoria),
+  porEtapa: async (pid, etapa) => etapaFinDbParaMemoria((await financeiroDocFs_(pid))[etapa]),
+  atualizarOrcamentoEtapa: async (pid, etapa, novoPrev) => {
+    const doc = await financeiroDocFs_(pid);
+    if(!doc[etapa]) doc[etapa] = {prev:0, categorias:[]};
+    doc[etapa].prev = novoPrev;
+    await salvarFinanceiroDocFs_(pid, doc);
+    return etapaFinDbParaMemoria(doc[etapa]);
+  },
   adicionarCategoria: async (pid, etapa, c) => {
     const doc = await financeiroDocFs_(pid);
-    if(!doc[etapa]) doc[etapa] = [];
-    const nova = {nome:c.nome, prev:c.prev, lanc:[]};
-    doc[etapa].push(nova);
+    if(!doc[etapa]) doc[etapa] = {prev:0, categorias:[]};
+    const nova = {nome:c.nome, lanc:[]};
+    doc[etapa].categorias.push(nova);
     await salvarFinanceiroDocFs_(pid, doc);
     return categoriaFinDbParaMemoria(nova);
-  },
-  atualizarOrcamento: async (pid, etapa, categoriaNome, novoPrev) => {
-    const doc = await financeiroDocFs_(pid);
-    const cat = (doc[etapa]||[]).find(c=>c.nome===categoriaNome);
-    if(!cat) throw new Error('Categoria "'+categoriaNome+'" não encontrada em '+etapa+'.');
-    cat.prev = novoPrev;
-    await salvarFinanceiroDocFs_(pid, doc);
-    return categoriaFinDbParaMemoria(cat);
   },
   // l.fotoDataUrl (opcional) = foto recém-anexada no modal "Lançar gasto",
   // ainda como data URL — sobe pro Drive antes de escrever o documento, mesmo
   // padrão de Api.rdos.salvar (ver comentário ali embaixo)
   lancarGasto: async (pid, etapa, categoriaNome, l) => {
     const doc = await financeiroDocFs_(pid);
-    const cat = (doc[etapa]||[]).find(c=>c.nome===categoriaNome);
+    const cat = ((doc[etapa]&&doc[etapa].categorias)||[]).find(c=>c.nome===categoriaNome);
     if(!cat) throw new Error('Categoria "'+categoriaNome+'" não encontrada em '+etapa+'.');
     const lDb = lancMemoriaParaDb(l);
     if(l.fotoDataUrl){
@@ -543,14 +549,14 @@ Api.financeiro = {
   },
   removerLancamento: async (pid, etapa, categoriaNome, indice) => {
     const doc = await financeiroDocFs_(pid);
-    const cat = (doc[etapa]||[]).find(c=>c.nome===categoriaNome);
+    const cat = ((doc[etapa]&&doc[etapa].categorias)||[]).find(c=>c.nome===categoriaNome);
     if(!cat) throw new Error('Categoria "'+categoriaNome+'" não encontrada em '+etapa+'.');
     cat.lanc.splice(indice, 1);
     await salvarFinanceiroDocFs_(pid, doc);
   },
   removerCategoria: async (pid, etapa, categoriaNome) => {
     const doc = await financeiroDocFs_(pid);
-    doc[etapa] = (doc[etapa]||[]).filter(c=>c.nome!==categoriaNome);
+    if(doc[etapa]) doc[etapa].categorias = (doc[etapa].categorias||[]).filter(c=>c.nome!==categoriaNome);
     await salvarFinanceiroDocFs_(pid, doc);
   },
 };

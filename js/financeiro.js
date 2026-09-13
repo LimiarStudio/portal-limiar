@@ -23,22 +23,20 @@ async function openCategoria(pid, etapaPreset){
     <div class="form-grid">
       <div class="fg"><label>Etapa</label>
         <select id="cat-etapa" onchange="updateCategoriaOptions(${pid})">${etapas.map(e=>`<option ${e===etapaPreset?'selected':''}>${e}</option>`).join('')}</select></div>
-      <div class="fg"><label>Valor orçado (R$)</label><input id="cat-val" type="number" min="0" step="100" placeholder="0,00"></div>
       <div class="fg full"><label>Categoria</label><select id="cat-nome"></select></div>
     </div>
-    <p class="card-note" style="margin-top:14px">As categorias são padronizadas por etapa — se a etapa que você precisa ainda não existe, cadastre-a primeiro no cronograma. Orçado 0 registra os gastos normalmente, mas eles não contam no saldo do projeto.</p>
+    <p class="card-note" style="margin-top:14px">As categorias são padronizadas por etapa — se a etapa que você precisa ainda não existe, cadastre-a primeiro no cronograma. O orçamento é definido por etapa (botão "Editar orçamento" no cabeçalho dela), não por categoria — aqui a categoria só agrupa os gastos.</p>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveCategoria(${pid})">Salvar categoria</button>`);
   updateCategoriaOptions(pid);
 }
 async function saveCategoria(pid){
-  const etapa=$('#cat-etapa').value, val=+$('#cat-val').value, nome=$('#cat-nome').value;
+  const etapa=$('#cat-etapa').value, nome=$('#cat-nome').value;
   if(!nome){alert('Não há categorias padrão disponíveis para esta etapa.');return;}
-  if(!(val>=0)){alert('Informe um valor orçado válido.');return;}
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   try{
-    await Api.financeiro.adicionarCategoria(pid, etapa, {nome, prev:val});
+    await Api.financeiro.adicionarCategoria(pid, etapa, {nome});
     financeiro[pid][etapa]=await Api.financeiro.porEtapa(pid, etapa);
     closeModal();renderProjetoTabs();
   }catch(e){
@@ -46,22 +44,21 @@ async function saveCategoria(pid){
     btn.disabled=false;
   }
 }
-function openEditOrcamento(pid,etapa,i){
-  const it=financeiro[pid][etapa][i];
-  modal('Editar orçamento — '+etapa+' · '+it.nome,`
-    <div class="fg full"><label>Valor orçado (R$)</label><input id="orc-val" type="number" min="0" step="100" value="${it.prev}"></div>
-    <p class="card-note" style="margin-top:14px">Altera só o valor previsto desta categoria — os lançamentos de gasto já feitos não são afetados.</p>
+function openEditOrcamentoEtapa(pid,etapa){
+  const ep=etapaPrevisto(pid,etapa);
+  modal('Editar orçamento — '+etapa,`
+    <div class="fg full"><label>Valor orçado (R$)</label><input id="orc-val" type="number" min="0" step="100" value="${ep}"></div>
+    <p class="card-note" style="margin-top:14px">Altera só o valor previsto desta etapa — os lançamentos de gasto já feitos não são afetados.</p>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
-     <button class="btn-primary" style="width:auto" onclick="saveEditOrcamento(${pid},'${etapa}',${i})">Salvar orçamento</button>`);
+     <button class="btn-primary" style="width:auto" onclick="saveEditOrcamentoEtapa(${pid},'${etapa}')">Salvar orçamento</button>`);
 }
-async function saveEditOrcamento(pid,etapa,i){
+async function saveEditOrcamentoEtapa(pid,etapa){
   const val=+$('#orc-val').value;
   if(!(val>=0)){alert('Informe um valor orçado válido.');return;}
-  const nome=financeiro[pid][etapa][i].nome;
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   try{
-    await Api.financeiro.atualizarOrcamento(pid, etapa, nome, val);
+    await Api.financeiro.atualizarOrcamentoEtapa(pid, etapa, val);
     financeiro[pid][etapa]=await Api.financeiro.porEtapa(pid, etapa);
     closeModal();renderProjetoTabs();
   }catch(e){
@@ -70,7 +67,7 @@ async function saveEditOrcamento(pid,etapa,i){
   }
 }
 async function removeCategoriaFin(pid,etapa,i){
-  const it=financeiro[pid][etapa][i];
+  const it=financeiro[pid][etapa].categorias[i];
   const aviso=it.lanc&&it.lanc.length?` Os ${it.lanc.length} lançamento(s) registrados nela também serão apagados.`:'';
   if(!confirm(`Remover a categoria "${it.nome}" de ${etapa}?${aviso} Essa ação não pode ser desfeita.`)) return;
   try{
@@ -85,13 +82,17 @@ async function removeCategoriaFin(pid,etapa,i){
 // mesmo padrão de novaImagem em editar-projeto-page.js
 let gastoFotoDataUrl;
 function openGasto(pid,etapa,i){
-  const it=financeiro[pid][etapa][i], real=realizado(it), saldo=it.prev-real;
+  // orçado/gasto/saldo mostrados aqui são da ETAPA inteira (não mais da
+  // categoria — orçamento agora é por etapa, ver etapaPrevisto em js/data.js),
+  // já que é o contexto que importa na hora de decidir se ainda cabe o gasto
+  const it=financeiro[pid][etapa].categorias[i];
+  const ep=etapaPrevisto(pid,etapa), er=etapaRealizado(pid,etapa), saldo=ep-er;
   gastoFotoDataUrl=undefined;
   modal('Lançar gasto — '+etapa+' · '+it.nome,`
     <div class="grid-3" style="margin-bottom:16px">
-      ${kpi('Orçado',fmt(it.prev))}
-      ${kpi('Já gasto',fmt(real))}
-      ${kpi('Saldo',fmt(saldo),null,null,saldo<0?'estourado':'disponível')}
+      ${kpi('Orçado da etapa',fmt(ep))}
+      ${kpi('Já gasto na etapa',fmt(er))}
+      ${kpi('Saldo da etapa',fmt(saldo),null,null,saldo<0?'estourado':'disponível')}
     </div>
     <div class="form-grid three">
       <div class="fg"><label>Data da compra</label><input id="g-data" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
@@ -128,7 +129,7 @@ function removerGastoFoto(){ gastoFotoDataUrl=undefined; drawGastoFotoPreview();
 async function saveGasto(pid,etapa,i){
   const val=+$('#g-val').value;
   if(!(val>0)){alert('Informe um valor gasto maior que zero.');return;}
-  const nome=financeiro[pid][etapa][i].nome;
+  const nome=financeiro[pid][etapa].categorias[i].nome;
   const d=inputParaData($('#g-data').value);
   const desc=$('#g-desc').value.trim()||'—';
   const btn=document.querySelector('#modalRoot .btn-primary');
@@ -153,7 +154,7 @@ const chaveData = dataBr => { const [d,m,a]=dataBr.split('/').map(Number); retur
 // FOTOS_RDO_ATUAL em rdo-ver-page.js)
 let LANC_ATUAL = [];
 function verLanc(pid,etapa,i){
-  const it=financeiro[pid][etapa][i];
+  const it=financeiro[pid][etapa].categorias[i];
   const podeExclFin=podeExcluir(pid,'financeiro');
   // mais recente primeiro (por mês/ano da data da compra), não mais por
   // ordem de lançamento — "li" (índice original no array) segue sendo o que
@@ -175,8 +176,8 @@ function abrirLancFotoLightbox(pos){
   abrirLightbox(l.foto.src, l.desc);
 }
 async function removeLancamento(pid,etapa,i,li){
-  const l=financeiro[pid][etapa][i].lanc[li];
-  const nome=financeiro[pid][etapa][i].nome;
+  const l=financeiro[pid][etapa].categorias[i].lanc[li];
+  const nome=financeiro[pid][etapa].categorias[i].nome;
   if(!confirm(`Remover o lançamento "${l.desc}" (${fmt(l.valor)})? Essa ação não pode ser desfeita.`)) return;
   try{
     await Api.financeiro.removerLancamento(pid, etapa, nome, li);

@@ -69,14 +69,14 @@ Se tiver **Excluir** liberado:
 
 ## 7. Financeiro
 
-Mostra três números no topo — Total orçado, Total gasto, Saldo a gastar — seguidos do detalhamento por etapa e categoria, e um resumo consolidado por categoria no fim da página.
+Mostra três números no topo — Total orçado, Total gasto, Saldo a gastar — seguidos do detalhamento por etapa e categoria, e um resumo consolidado por categoria (só o gasto de cada uma, somado em todas as etapas) no fim da página.
 
-Cada categoria pertence a uma etapa e tem um valor orçado. Categorias com **orçado R$ 0** existem pra registrar um gasto avulso que não deve contar contra orçamento nenhum — nesses casos, em vez de uma porcentagem, você vê um traço (—); o gasto entra no Total gasto, mas não é descontado do Saldo a gastar.
+O **orçamento é definido por etapa**, não por categoria — cada etapa tem um valor previsto único, e as categorias dentro dela só agrupam os gastos lançados. Etapas com **orçamento R$ 0** existem pra registrar gasto avulso que não deve contar contra orçamento nenhum — nesses casos, em vez de uma porcentagem, você vê um traço (—); o gasto entra no Total gasto, mas não é descontado do Saldo a gastar.
 
 Se você tiver **Editar** liberado no Financeiro:
-- **+ Nova categoria** (no topo da etapa) cria uma categoria nova, associada a uma etapa.
-- **Editar orçado** altera só o valor previsto — não mexe nos gastos já lançados.
-- **+ Lançar gasto** registra uma despesa: data, valor, descrição e, opcionalmente, uma foto do comprovante.
+- **Editar orçamento** (no cabeçalho de cada etapa) altera o valor previsto daquela etapa inteira — não mexe nos gastos já lançados.
+- **+ Nova categoria** (no topo da etapa) cria uma categoria nova, associada a uma etapa — só pra agrupar gastos, sem orçamento próprio.
+- **+ Lançar gasto** registra uma despesa numa categoria: data, valor, descrição e, opcionalmente, uma foto do comprovante.
 - Clique no número de lançamentos de uma categoria ("N lançamento(s)") pra ver a lista, ordenada por mês/ano (mais recente primeiro). Comprovantes anexados aparecem como uma miniatura clicável, que abre em tamanho original.
 
 Se tiver **Excluir** liberado:
