@@ -141,7 +141,11 @@ Api.users = {
       await firestoreDb().doc('users/'+uid).set(doc);
       return Object.assign({id:uid}, doc);
     }catch(e){
-      if(e.code==='auth/email-already-in-use') throw new Error('Já existe uma conta com o e-mail '+email+'.');
+      // "Remover" no site só revoga acesso (Firestore) — a conta de login em si
+      // (Firebase Auth) continua existindo até alguém rodar gerenciar-usuario.js
+      // remover, então reusar o e-mail de uma conta só "removida" cai aqui;
+      // a mensagem genérica de antes não deixava isso claro (ver guia de administração)
+      if(e.code==='auth/email-already-in-use') throw new Error('Já existe uma conta de login com o e-mail '+email+'. Se essa conta só foi removida por aqui (Admin → Usuários → Remover), isso tira o acesso mas não apaga a conta em si — é preciso encerrá-la de vez pelo comando "node gerenciar-usuario.js remover '+email+'" (veja o Guia de Administração) antes de reusar esse e-mail.');
       throw e;
     }finally{
       try{ await secundario.auth().signOut(); }catch(e){}

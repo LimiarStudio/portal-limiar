@@ -103,7 +103,12 @@ function renderAdminUsuariosContent(){
     <div class="form-grid">
       <div class="fg"><label>Nome</label><input id="nu-nome" placeholder="Nome completo"></div>
       <div class="fg"><label>E-mail</label><input id="nu-email" type="email" placeholder="nome@email.com"></div>
-      <div class="fg full"><label>Senha</label><input id="nu-senha" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password"></div>
+      <div class="fg full"><label>Senha</label>
+        <div class="pw-wrap">
+          <input id="nu-senha" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password">
+          ${pwToggleHtml()}
+        </div>
+      </div>
     </div>
     <p class="card-note" style="margin-top:10px;margin-bottom:0">A senha é definida aqui, na criação. Trocar depois é só pelo script local (gerenciar-usuario.js) — não há troca de senha pelo próprio usuário nem pelo administrador direto do site.</p>
     <div style="display:flex;justify-content:flex-end;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">

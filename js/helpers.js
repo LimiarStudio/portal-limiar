@@ -5,6 +5,26 @@ const fmtK = v=>"R$ "+(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})
 // escapa texto livre digitado pelo usuário antes de inserir no HTML (descrições de
 // atividades, ocorrências etc. podem conter <, &, aspas...)
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* botão de mostrar/ocultar senha — usado no login e em "Adicionar usuário".
+   pwToggleHtml() gera o botão já no estado inicial (senha oculta, ícone de
+   olho aberto = "clique pra mostrar"); togglePasswordVisibility() alterna o
+   input e troca o ícone pro estado oposto (olho riscado = "clique pra ocultar") */
+function eyeIconSvg_(riscado){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${riscado
+    ? '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.9 18.9 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}</svg>`;
+}
+function pwToggleHtml(){
+  return `<button type="button" class="pw-toggle" tabindex="-1" aria-label="Mostrar senha" onclick="togglePasswordVisibility(this)">${eyeIconSvg_(false)}</button>`;
+}
+function togglePasswordVisibility(btn){
+  const input = btn.parentElement.querySelector('input');
+  const vaiMostrar = input.type === 'password';
+  input.type = vaiMostrar ? 'text' : 'password';
+  btn.innerHTML = eyeIconSvg_(vaiMostrar);
+  btn.setAttribute('aria-label', vaiMostrar ? 'Ocultar senha' : 'Mostrar senha');
+}
 // fotos de relatórios podem estar no formato antigo dos exemplos (array [legenda, emoji])
 // ou no formato novo, com imagem real anexada de verdade ({cap, src}) — normaliza os dois
 const normalizeFoto = f => Array.isArray(f) ? {cap:f[0], emoji:f[1]} : f;

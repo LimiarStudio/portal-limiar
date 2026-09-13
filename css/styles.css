@@ -230,6 +230,14 @@ a.rdo-item{text-decoration:none;color:inherit}
 .fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--txt)}
 .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent)}
 .fg.full{grid-column:1/-1}
+/* botão de mostrar/ocultar senha — funciona dentro de .field (login) ou .fg
+   (formulários com form-grid); a regra de padding precisa vir depois de
+   ".field input"/".fg input" acima pra vencer no empate de especificidade */
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:38px}
+.pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;background:none;color:var(--mut);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;border-radius:6px}
+.pw-toggle:hover{color:var(--txt);background:var(--line)}
+.pw-toggle svg{width:18px;height:18px}
 .section-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin:20px 0 12px;padding-top:14px;border-top:1px dashed var(--line)}
 .section-label:first-child{border-top:none;padding-top:0;margin-top:0}
 .addrow{display:flex;gap:8px;align-items:center;margin-top:8px}
