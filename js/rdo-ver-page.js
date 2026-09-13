@@ -10,10 +10,19 @@ async function baixarPdf(pid, n){
   const btn=$('#btn-baixar-pdf');
   const original=btn.textContent;
   btn.disabled=true; btn.textContent='Gerando PDF…';
+  // a aba precisa abrir AGORA, ainda dentro do clique — Api.rdos.gerarPdf pode
+  // demorar vários segundos (round-trip pro Apps Script), e a essa altura o
+  // navegador já não considera mais um window.open() como resultado direto de
+  // um gesto do usuário. Chrome no desktop deixa passar mesmo assim, mas
+  // Safari/Chrome no celular bloqueiam esse window.open() tardio em silêncio
+  // (nenhuma aba abre, nenhum erro aparece) — por isso "só no celular"
+  const aba = window.open('', '_blank');
   try{
     const {url}=await Api.rdos.gerarPdf(pid, n);
-    window.open(url, '_blank');
+    if(aba) aba.location.href = url;
+    else window.open(url, '_blank'); // navegador bloqueou até a aba em branco — tenta do jeito antigo mesmo assim
   }catch(e){
+    if(aba) aba.close();
     alert('Não foi possível gerar o PDF: '+e.message);
   }finally{
     btn.disabled=false; btn.textContent=original;
