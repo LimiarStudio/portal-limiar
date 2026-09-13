@@ -79,13 +79,15 @@ async function saveEtapaEdit(pid, id){
     btn.disabled=false;
   }
 }
-/* --- versão simplificada, pra projetos "Apenas Relatórios": só nome da
-   etapa e progresso, sem datas/prazo (ver renderCrono em js/render.js) ---
-   ini/fim são preenchidos com a data de hoje e dur fica fixo em 1 só pra
-   satisfazer o schema do backend (que espera esses campos) — nada disso
-   aparece nessa versão da tela, e dur=1 faz a média ponderada de
-   progressoGeral() virar uma média simples entre as etapas, que é o
-   esperado quando não existe prazo pra ponderar */
+/* --- versão simplificada, pra projetos "Apenas Relatórios": nome da etapa,
+   duração estimada (dias) e progresso — sem datas fixas de início/término
+   (ver renderCrono em js/render.js), já que esse tipo de projeto não
+   acompanha prazo. ini/fim continuam preenchidos com a data de hoje só pra
+   satisfazer o schema do backend (nunca aparecem nessa versão da tela).
+   "dur" É pedido pro usuário (não fixo em 1): progressoGeral() pondera o
+   progresso geral do projeto por essa duração, e antes disso toda etapa
+   pesava igual não importa quão maior ou menor fosse na prática — o mesmo
+   problema que "Projeto completo" já não tem, por ter ini/fim reais. */
 async function openEtapaSimples(pid){
   await garantirCatalogCache(pid);
   const atuais=ensureCronograma(pid).map(e=>e.nome);
@@ -97,17 +99,21 @@ async function openEtapaSimples(pid){
   }
   modal('Nova etapa',`
     <div class="fg full"><label>Etapa</label><select id="et-nome">${disponiveis.map(e=>`<option>${e}</option>`).join('')}</select></div>
+    <div class="fg full"><label>Duração estimada (dias)</label><input id="et-dur-simples" type="number" min="1" value="1"></div>
+    <p class="card-note">Usada só pra ponderar o progresso geral do projeto — etapas mais longas pesam mais que etapas curtas.</p>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveEtapaSimples(${pid})">Salvar etapa</button>`);
 }
 async function saveEtapaSimples(pid){
   const nome=$('#et-nome').value;
+  const dur=+$('#et-dur-simples').value;
+  if(!dur||dur<1){alert('A duração estimada deve ser de pelo menos 1 dia.');return;}
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   const hoje=new Date();
   const dd=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
   try{
-    await Api.cronograma.adicionar(pid, {nome, ini:dd, fim:dd, av:0, dur:1});
+    await Api.cronograma.adicionar(pid, {nome, ini:dd, fim:dd, av:0, dur:Math.round(dur)});
     cronogramas[pid]=await Api.cronograma.listar(pid);
     await recalcularAvancoProjeto(pid);
     closeModal();renderProjetoTabs();
@@ -119,18 +125,21 @@ async function saveEtapaSimples(pid){
 function editEtapaSimples(pid, id){
   const item=ensureCronograma(pid).find(x=>x.id===id);
   if(!item) return;
-  modal('Editar progresso — '+item.nome,`
+  modal('Editar etapa — '+item.nome,`
+    <div class="fg full"><label>Duração estimada (dias)</label><input id="et-dur-simples" type="number" min="1" value="${item.dur}"></div>
     <div class="fg full"><label>Progresso (%)</label><input id="et-av-simples" type="number" min="0" max="100" value="${item.av}"></div>
   `,`<button class="btn" onclick="closeModal()">Cancelar</button>
      <button class="btn-primary" style="width:auto" onclick="saveEtapaSimplesEdit(${pid},'${id}')">Salvar</button>`);
 }
 async function saveEtapaSimplesEdit(pid, id){
   const av=+$('#et-av-simples').value;
+  const dur=+$('#et-dur-simples').value;
   if(isNaN(av)||av<0||av>100){alert('O progresso deve estar entre 0 e 100%.');return;}
+  if(!dur||dur<1){alert('A duração estimada deve ser de pelo menos 1 dia.');return;}
   const btn=document.querySelector('#modalRoot .btn-primary');
   btn.disabled=true;
   try{
-    await Api.cronograma.atualizar(pid, id, {av});
+    await Api.cronograma.atualizar(pid, id, {av, dur:Math.round(dur)});
     cronogramas[pid]=await Api.cronograma.listar(pid);
     await recalcularAvancoProjeto(pid);
     closeModal();renderProjetoTabs();

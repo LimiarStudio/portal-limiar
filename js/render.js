@@ -185,14 +185,17 @@ function renderCrono(p){
   const t=ensureCronograma(p.id);
   const podeEditCrono=podeEditar(p.id,'cronograma'), podeExclCrono=podeExcluir(p.id,'cronograma');
   const temAcoes=podeEditCrono||podeExclCrono;
-  // projetos "Apenas Relatórios" usam um cronograma sem datas/prazo — só
-  // nome da etapa e a barra de progresso (ver openEtapaSimples/editEtapaSimples
-  // em js/cronograma.js), já que esse tipo de projeto não acompanha prazos
+  // projetos "Apenas Relatórios" usam um cronograma sem datas fixas de
+  // início/término — nome da etapa, duração estimada (dias, só pra
+  // ponderar o progresso geral) e a barra de progresso (ver
+  // openEtapaSimples/editEtapaSimples em js/cronograma.js), já que esse
+  // tipo de projeto não acompanha prazo
   if(p.tipo==='relatorios'){
     return `<div class="card"><h3>Avanço de etapas</h3>
-      <p class="card-note">O avanço de cada etapa é atualizado automaticamente pelos relatórios semanais vinculados.</p>
+      <p class="card-note">O avanço de cada etapa é atualizado automaticamente pelos relatórios semanais vinculados. A duração estimada de cada etapa é usada só pra ponderar o progresso geral do projeto (etapas mais longas pesam mais).</p>
       ${t.length?t.map(x=>`<div class="r" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)">
         <b style="flex:0 0 160px">${x.nome}</b>
+        <span class="mut" style="flex:0 0 90px;font-size:12px">${x.dur} dia${x.dur===1?'':'s'}</span>
         <div class="gbar" style="flex:1"><i style="width:${x.av}%"></i></div>
         <span class="fin-pct" style="flex:0 0 44px;text-align:right">${x.av}%</span>
         ${temAcoes?`<div style="display:flex;gap:6px;flex:0 0 auto">
