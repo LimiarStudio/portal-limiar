@@ -52,7 +52,15 @@ async function initProjetoPage(){
     [p, crono, fin, rdosList] = await Promise.all([
       Api.projects.buscar(PROJETO_ID),
       Api.cronograma.listar(PROJETO_ID),
-      Api.financeiro.tudo(PROJETO_ID),
+      // projetos "Apenas Relatórios" não têm módulo Financeiro (ver
+      // modulosDoProjeto em helpers.js) — a permissão desse módulo fica
+      // sempre false pra todo mundo (não dá nem pra conceder pela tela de
+      // Usuários), então as Firestore rules SEMPRE negam esta leitura pra
+      // quem não é admin. Isso é esperado, não um erro fatal: sem o
+      // .catch(), a rejeição derrubava o Promise.all inteiro e mandava
+      // qualquer cliente de volta pra projetos.html ao tentar abrir um
+      // projeto desse tipo, mesmo com acesso total aos módulos que existem.
+      Api.financeiro.tudo(PROJETO_ID).catch(()=>({})),
       Api.rdos.listar(PROJETO_ID),
       carregarPermissoes(PROJETO_ID),
     ]);
