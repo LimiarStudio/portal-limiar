@@ -1,7 +1,6 @@
 /* =================== HELPERS =================== */
 const $ = s=>document.querySelector(s);
 const fmt = v=>"R$ "+v.toLocaleString('pt-BR');
-const fmtK = v=>"R$ "+(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+"k";
 // escapa texto livre digitado pelo usuário antes de inserir no HTML (descrições de
 // atividades, ocorrências etc. podem conter <, &, aspas...)
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

@@ -89,9 +89,9 @@ function openGasto(pid,etapa,i){
   gastoFotoDataUrl=undefined;
   modal('Lançar gasto — '+etapa+' · '+it.nome,`
     <div class="grid-3" style="margin-bottom:16px">
-      ${kpi('Orçado',fmtK(it.prev))}
-      ${kpi('Já gasto',fmtK(real))}
-      ${kpi('Saldo',fmtK(saldo),null,null,saldo<0?'estourado':'disponível')}
+      ${kpi('Orçado',fmt(it.prev))}
+      ${kpi('Já gasto',fmt(real))}
+      ${kpi('Saldo',fmt(saldo),null,null,saldo<0?'estourado':'disponível')}
     </div>
     <div class="form-grid three">
       <div class="fg"><label>Data da compra</label><input id="g-data" type="date" value="${new Date().toISOString().slice(0,10)}"></div>

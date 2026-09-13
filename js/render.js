@@ -29,7 +29,7 @@ function renderVisao(p){
     </div>
   </div>
   ${completo
-    ? `<div class="grid-2">${kpi('Progresso geral',p.avanco+'%','progress-mini',p.avanco)}${kpi('Gasto', fmtK(finR), null, null, `de ${fmtK(finP)} orçado`)}</div>
+    ? `<div class="grid-2">${kpi('Progresso geral',p.avanco+'%','progress-mini',p.avanco)}${kpi('Gasto', fmt(finR), null, null, `de ${fmt(finP)} orçado`)}</div>
        <div class="grid-2">${renderDonutGastoEtapa(p.id)}${renderGastoMensal(p.id)}</div>`
     : kpi('Progresso geral',p.avanco+'%','progress-mini',p.avanco)}`;
 }
@@ -54,7 +54,7 @@ function renderDonutGastoEtapa(pid){
     <p class="card-note">Distribuição do total já gasto entre as etapas do cronograma.</p>
     <div class="donut-wrap">
       <div class="donut" style="background:conic-gradient(${stops})">
-        <div class="donut-hole"><b>${fmtK(total)}</b><span>gasto total</span></div>
+        <div class="donut-hole"><b>${fmt(total)}</b><span>gasto total</span></div>
       </div>
       <div class="donut-legend">
         ${data.map((d,i)=>`<div class="dl-row"><span class="dot" style="background:${CHART_COLORS[i%CHART_COLORS.length]}"></span>${d.nome}<b>${fmt(d.valor)}</b><span class="mut">${Math.round(d.valor/total*100)}%</span></div>`).join('')}
@@ -111,9 +111,9 @@ function renderFin(p){
   const podeEditFin=podeEditar(p.id,'financeiro'), podeExclFin=podeExcluir(p.id,'financeiro');
   return `
   <div class="grid-3">
-    ${kpi('Total orçado',fmtK(tp))}
-    ${kpi('Total gasto',fmtK(tr),null,null,`${tp?Math.round(tr/tp*100):0}% do orçado`)}
-    ${kpi('Saldo a gastar',fmtK(tp-trOrc),null,null,(trOrc<=tp?'dentro do orçamento':'ACIMA do orçamento'))}
+    ${kpi('Total orçado',fmt(tp))}
+    ${kpi('Total gasto',fmt(tr),null,null,`${tp?Math.round(tr/tp*100):0}% do orçado`)}
+    ${kpi('Saldo a gastar',fmt(tp-trOrc),null,null,(trOrc<=tp?'dentro do orçamento':'ACIMA do orçamento'))}
   </div>
   <div class="card">
     <h3>Orçado × Gasto por etapa e categoria</h3>
@@ -125,7 +125,7 @@ function renderFin(p){
         <div class="fin-etapa-head">
           <h4>${etapa}</h4>
           <div style="display:flex;align-items:center;gap:12px">
-            <span class="tot"><b>${fmtK(er)}</b> de ${fmt(ep)} orçado</span>
+            <span class="tot"><b>${fmt(er)}</b> de ${fmt(ep)} orçado</span>
             ${finPctBadge(ep?Math.round(erOrc/ep*100):0, erOrc>ep)}
           </div>
         </div>
@@ -145,9 +145,9 @@ function renderFin(p){
                 <div class="fin-bar bar-real"><i style="width:${real/localMax*100}%"></i></div>
               </div>
             </div>
-            <div class="num" style="font-size:12px"><b>${fmtK(real)}</b><br>${semOrcamento
+            <div class="num" style="font-size:12px"><b>${fmt(real)}</b><br>${semOrcamento
               ?`<span class="mut">sem orçamento</span>`
-              :`<span class="mut">de ${fmtK(c.prev)}</span><br><span class="${estouro?'down':'up'}" style="font-size:11px">${estouro?'+':''}${fmtK(Math.abs(saldo))} ${estouro?'acima':'saldo'}</span>`}</div>
+              :`<span class="mut">de ${fmt(c.prev)}</span><br><span class="${estouro?'down':'up'}" style="font-size:11px">${estouro?'+':''}${fmt(Math.abs(saldo))} ${estouro?'acima':'saldo'}</span>`}</div>
             ${(podeEditFin||podeExclFin)?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
               ${podeEditFin?`<button class="mini-btn" onclick="openEditOrcamento(${p.id},'${etapa}',${i})">Editar orçado</button>
               <button class="mini-btn" onclick="openGasto(${p.id},'${etapa}',${i})">+ Lançar gasto</button>`:''}
@@ -175,7 +175,7 @@ function renderFin(p){
             <div class="fin-bar bar-real"><i style="width:${t.real/localMax*100}%"></i></div>
           </div>
         </div>
-        <div class="num" style="font-size:12px"><b>${fmtK(t.real)}</b><br><span class="mut">${semOrcamento?'sem orçamento':'de '+fmtK(t.prev)}</span></div>
+        <div class="num" style="font-size:12px"><b>${fmt(t.real)}</b><br><span class="mut">${semOrcamento?'sem orçamento':'de '+fmt(t.prev)}</span></div>
       </div>`;
     }).join(''):`<div class="mut" style="font-size:12px">Nenhum lançamento ainda.</div>`}
   </div>`;
