@@ -288,7 +288,11 @@ tfoot td{border-bottom:none;border-top:1px solid var(--line)}
   .overlay{padding:14px 10px}
   .modal-body{padding:16px}
   .modal-head,.modal-foot{padding:14px 16px}
-  .proj-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  /* cards de projeto: numa tela de celular, 2 colunas de ~150px espremem o
+     nome do projeto em 3 linhas e deixam a barra de progresso minúscula —
+     uma coluna só, mais larga, lê muito melhor (ainda cabem 2 numa tela um
+     pouco maior, tipo um tablet pequeno em pé, já que o breakpoint vai até 640px) */
+  .proj-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
   .photo-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
   /* lista de relatórios: o resumo (pessoas/fotos) quebra pra baixo em vez de
      espremer contra o número do relatório e a descrição */
@@ -302,4 +306,29 @@ tfoot td{border-bottom:none;border-top:1px solid var(--line)}
      rolagem horizontal dentro de cada linha */
   .fin-row{grid-template-columns:1fr!important;gap:8px;padding:14px 0}
   .fin-row .num{text-align:left}
+  /* cabeçalho de cada etapa no Financeiro: nome + "R$X de R$Y orçado" + badge
+     + botão espremiam tudo numa linha só e ficavam ilegíveis (texto colado,
+     botão cortado) — empilha em vez de espremer */
+  .fin-etapa-head{flex-direction:column;align-items:flex-start;gap:8px}
+  .fin-etapa-head>div{flex-wrap:wrap;width:100%}
+  /* cronograma "Apenas Relatórios": mesma ideia do .fin-row acima — a linha
+     rígida (nome + duração + barra + % + botões, tudo em flex:0 0 <px> fixo)
+     não cabe na largura de um celular e espreme tudo ilegível; empilha em
+     vez de forçar rolagem horizontal */
+  .crono-simples-row{flex-wrap:wrap;gap:8px 14px}
+  .crono-simples-row b{flex:1 1 100%!important}
+  .crono-simples-row .gbar{flex:1 1 100%!important;order:3}
+  /* cronograma "Projeto completo": a tabela (pensada pra tela cheia, min-width
+     820px) virava rolagem horizontal que escondia Término/Avanço/Progresso
+     fora da tela — cada linha vira um cartão empilhado, com o nome de cada
+     coluna ao lado do valor (attr(data-label), ver renderCrono em js/render.js) */
+  .gantt{overflow-x:visible}
+  .gantt table{min-width:0;width:100%}
+  .gantt thead{display:none}
+  .gantt tbody tr{display:block;border:1px solid var(--line);border-radius:10px;padding:4px 14px;margin-bottom:10px}
+  .gantt tbody td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .gantt tbody tr>td:last-child{border-bottom:none}
+  .gantt tbody td[data-label]::before{content:attr(data-label);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut2);font-weight:600;flex:none}
+  .gantt tbody td.bar-cell{flex-direction:column;align-items:stretch;gap:6px}
+  .gantt tbody td.bar-cell::before{margin-bottom:0}
 }

@@ -176,7 +176,7 @@ function renderCrono(p){
   if(p.tipo==='relatorios'){
     return `<div class="card"><h3>Avanço de etapas</h3>
       <p class="card-note">O avanço de cada etapa é atualizado automaticamente pelos relatórios semanais vinculados. A duração estimada de cada etapa é usada só pra ponderar o progresso geral do projeto (etapas mais longas pesam mais).</p>
-      ${t.length?t.map(x=>`<div class="r" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)">
+      ${t.length?t.map(x=>`<div class="r crono-simples-row" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)">
         <b style="flex:0 0 160px">${x.nome}</b>
         <span class="mut" style="flex:0 0 90px;font-size:12px">${x.dur} dia${x.dur===1?'':'s'}</span>
         <div class="gbar" style="flex:1"><i style="width:${x.av}%"></i></div>
@@ -193,9 +193,9 @@ function renderCrono(p){
     ${t.length?`<div class="gantt"><table>
     <thead><tr><th style="width:220px">Etapa</th><th>Início</th><th>Término</th><th style="width:90px">Avanço</th><th style="width:340px">Progresso</th>${temAcoes?'<th style="width:90px"></th>':''}</tr></thead>
     <tbody>${t.map(x=>`<tr>
-      <td><b>${x.nome}</b></td><td>${x.ini||'—'}</td><td>${x.fim||'—'}</td>
-      <td><span class="fin-pct">${x.av}%</span></td>
-      <td class="bar-cell"><div class="gbar"><i style="width:${x.av}%"></i></div></td>
+      <td><b>${x.nome}</b></td><td data-label="Início">${x.ini||'—'}</td><td data-label="Término">${x.fim||'—'}</td>
+      <td data-label="Avanço"><span class="fin-pct">${x.av}%</span></td>
+      <td class="bar-cell" data-label="Progresso"><div class="gbar"><i style="width:${x.av}%"></i></div></td>
       ${temAcoes?`<td style="text-align:right"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         ${podeEditCrono?`<button class="mini-btn" onclick="editEtapa(${p.id},'${x.id}')">Editar</button>`:''}
         ${podeExclCrono?`<button class="mini-btn mini-btn-danger" onclick="removeCronogramaEtapa(${p.id},'${x.id}','${x.nome.replace(/'/g,"\\'")}')">Remover</button>`:''}
